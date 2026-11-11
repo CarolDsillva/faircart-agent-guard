@@ -109,3 +109,26 @@ describe('reason subjects', () => {
     ]);
   });
 });
+
+describe('fare-style bills (product shown as a subtotal)', () => {
+  it('takes the product from the subtotal and flags extra item lines', () => {
+    const r = (label: string, amount: number, kind: 'item' | 'subtotal' | 'total' | 'fee', extra = {}) => ({ label, amount, kind, free: false, elRef: label, ...extra });
+    const bill = {
+      rows: [r('Base fare', 5849, 'subtotal'), r('Seat selection (14C)', 449, 'item'), r('Total amount', 6298, 'total')],
+      displayedTotal: 6298,
+      computedTotal: 6298,
+      difference: 0,
+      unreadable: [],
+    };
+    const res = guard({
+      mandate: mandate({ want: { sku: 'SH204', title: 'Flight BLR → DEL · SH 204', maxQuantity: 1 }, maxTotalPaise: 700000 }),
+      snapshot: snapshot([{ id: 'act:remove-seat-selection', label: 'Remove seat selection' }]),
+      bill: bill as never,
+      findings: [],
+      runId: 'r',
+      now: NOW,
+      secret: SECRET,
+    });
+    expect(res.verdict === 'BLOCK' && res.reasons.map((x) => [x.code, x.subject, x.fixable])).toEqual([['UNREQUESTED_ITEM', 'Seat selection (14C)', true]]);
+  });
+});

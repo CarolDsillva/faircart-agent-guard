@@ -71,7 +71,8 @@ export function guard(input: GuardInput): GuardResult {
   const items = bill.rows.filter((r) => r.kind === 'item');
   const want = norm(mandate.want.title);
   const productRows = items.filter((r) => norm(r.label).includes(want));
-  const productRow = productRows[0] ?? (items.length === 0 ? bill.rows.find((r) => r.kind === 'subtotal') : undefined);
+  // The product is the item line that names it; otherwise the subtotal (fare-style bills show it as "Base fare").
+  const productRow = productRows[0] ?? bill.rows.find((r) => r.kind === 'subtotal');
   const lines: AuthorizationLine[] = [];
   let computed = 0;
 

@@ -64,6 +64,6 @@ export function readChoicePairs(root: ParentNode, refs: RefRegistry): ControlFac
 export function stageFromContent(root: ParentNode): 'cart' | 'checkout' | null {
   const labels = [...root.querySelectorAll(CLICKABLE)].filter((b) => !b.closest('[data-faircart-ui]')).map((b) => text(b).toLowerCase());
   if (labels.some((l) => /^(place (your )?order|pay now|proceed to pay|make payment|pay ₹)/.test(l))) return 'checkout';
-  if (labels.some((l) => /^(proceed to (checkout|buy)|checkout|go to checkout)/.test(l))) return 'cart';
+  if (labels.some((l) => /^(proceed to (checkout|buy)|checkout|go to checkout|continue to (payment|checkout))/.test(l))) return 'cart';
   return null;
 }

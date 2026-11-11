@@ -10,7 +10,7 @@ import { cleanText, isVisible, parseRupees, rupeeCount } from './util';
  */
 
 const TOTAL = /^(order total|grand total|total amount|amount payable|total payable|to pay|bill total|net payable|total)\b/i;
-const SUBTOTAL = /(items?\s*total|sub\s*-?total|item\(s\) total|price\s*\(\d+\s*items?\)|mrp total|bag total|cart value|items?:?$)/i;
+const SUBTOTAL = /(items?\s*total|sub\s*-?total|item\(s\) total|price\s*\(\d+\s*items?\)|mrp total|bag total|cart value|base fare|fare total|items?:?$)/i;
 const DISCOUNT = /(discount|savings?|coupon|promo|offer applied|you save|off\b)/i;
 const FEES: [RegExp, FeeFact['kind']][] = [
   [/handling/i, 'handling'],

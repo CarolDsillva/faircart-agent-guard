@@ -9,7 +9,7 @@ import { cleanText, hashString, isVisible } from './util';
  */
 
 const COUNTDOWN = /(ends?|ending|expires?|left|closes?)\s+in\s+(?:(\d{1,2})\s*h(?:rs?|ours?)?\s*)?(?:(\d{1,2})\s*m(?:in(?:s|utes)?)?\s*)?(?:(\d{1,2})\s*s(?:ec(?:s|onds)?)?)?/i;
-const CLOCK = /(ends?|ending|expires?|left|closes?)\s+in\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/i;
+const CLOCK = /((?:ends?|ending|expires?|left|closes?)\s+in|(?:held|reserved|locked)\s+for)\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/i;
 const STOCK = /\bonly\s+(\d{1,3})\s+(?:item|unit|piece)?s?\s*left\b/i;
 const SOCIAL = /(\d+(?:\.\d+)?)\s*([KkLl])?\+?\s+(?:bought|sold|ordered)\s+in\s+(?:the\s+)?(?:past|last)\s+(hour|day|week|month)/i;
 const VIEWING = /(\d+)\s+(?:people|users|others)\s+(?:are\s+)?(?:viewing|looking at)/i;
@@ -56,7 +56,7 @@ function* textLeaves(root: ParentNode, limit = 5000): Generator<Element> {
 }
 
 /** "AI shopping assistants", "AI agents", "LLM", "automated shoppers". */
-const AGENT_ADDRESS = /\b(ai|a\.i\.|llm|automated|virtual)\s+(shopping\s+)?(assistants?|agents?|bots?|shoppers?|models?)\b|\bllms?\b/i;
+const AGENT_ADDRESS = /\b(ai|a\.i\.|llm|automated|virtual)\s+([a-z]+\s+)?(assistants?|agents?|bots?|shoppers?|models?)\b|\bllms?\b/i;
 /** Telling it what to do. */
 const AGENT_ORDER = /\b(must|mandatory|required|keep|do not|don't|never|always|ignore|select|add)\b/i;
 

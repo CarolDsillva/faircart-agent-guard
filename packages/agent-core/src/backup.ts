@@ -46,11 +46,11 @@ export function backupPlan(brief: PageBrief): Plan {
   }
 
   if (page.stage === 'product') {
-    const add = find(/^(add to (basket|cart|bag)|buy now)/i);
+    const add = find(/^(add to (basket|cart|bag)|buy now|book now|book this)/i);
     if (add) actions.push({ tool: 'click', controlId: add.id, explanation: `Adding ${mandate.product} to the basket.` });
   } else if (page.stage === 'cart') {
     removeUnrequested();
-    const next = find(/^(proceed to (checkout|pay)|checkout|go to checkout)/i);
+    const next = find(/^(proceed to (checkout|pay)|checkout|go to checkout|continue to (payment|checkout))/i);
     if (next) actions.push({ tool: 'click', controlId: next.id, explanation: 'Going to checkout.' });
   } else if (page.stage === 'checkout') {
     removeUnrequested();
