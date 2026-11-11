@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import type { LLMProvider } from '@faircart/agent-core';
 import { createApp } from './app';
 import { loadDotEnv, readConfig } from './env';
@@ -21,6 +24,13 @@ const app = createApp({
   paypal: cfg.paypal,
   paypalConfig: cfg.paypalConfig,
 });
+
+// In production the built console and practice stores are served by this same service.
+const dist = fileURLToPath(new URL('../../web/dist', import.meta.url));
+if (existsSync(dist)) {
+  app.use('/*', serveStatic({ root: dist }));
+  app.get('/shop', serveStatic({ path: `${dist}/shop.html` }));
+}
 
 serve({ fetch: app.fetch, port: cfg.port }, (info) => {
   console.log(`FairCart Agent Guard on http://localhost:${info.port} (planner: ${cfg.providerName}, PayPal: ${cfg.paypalConfig.mode})`);
