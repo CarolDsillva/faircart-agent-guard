@@ -94,7 +94,7 @@ export function merchantRoutes(deps: MerchantDeps) {
     const expected = centsToPayPal(run.authorization!.totalUsdCents);
     if (cap.status !== 'COMPLETED' || cap.amount !== expected) {
       store.fail(run, 'paypal', `PayPal captured ${cap.amount} (${cap.status}); expected ${expected}.`);
-      return c.json({ error: 'capture_mismatch', ...runView(run) }, 422);
+      return c.json({ ...runView(run), error: 'capture_mismatch' }, 422);
     }
     run.capture = cap;
     store.transition(run, 'captured', 'paypal', 'captured', cap);

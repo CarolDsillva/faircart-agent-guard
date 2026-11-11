@@ -46,7 +46,7 @@ describe('DemoMart merchant checkout', () => {
   it('refuses to go on when the PayPal order differs from what was approved', async () => {
     const paypal = new MockPayPal();
     paypal.tamper = (body) => {
-      body.purchase_units[0].amount.value = '3.29';
+      body.purchase_units[0]!.amount.value = '3.29';
       return body;
     };
     const { call, runId, authorization } = await authorized(paypal);
