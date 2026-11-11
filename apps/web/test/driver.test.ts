@@ -42,6 +42,22 @@ describe('driver', () => {
     expect(clicked).toBe(false);
   });
 
+  it('works on a store page in another frame, and waits when a link navigates', async () => {
+    const f = document.createElement('iframe');
+    document.body.append(f);
+    const doc = f.contentDocument!;
+    doc.body.innerHTML = '<main><label><input type="checkbox" id="protect" checked> Add 1-year freshness protection for ₹49</label><a href="?view=basket">Add to basket</a></main>';
+    doc.querySelector('a')!.addEventListener('click', (e) => e.preventDefault());
+    const frameObs = async () => observeDocument(doc, 'http://localhost:5173/shop.html?view=item', 'f1', 9);
+    let waited = false;
+    const ctx = { observe: frameObs, waitForNavigation: async () => void (waited = true) };
+
+    expect((await runAction({ tool: 'set_control', controlId: 'protect', checked: false, explanation: '' }, ctx)).result).toBe('done');
+    expect(doc.querySelector<HTMLInputElement>('#protect')!.checked).toBe(false);
+    await runAction({ tool: 'click', controlId: 'act:add-to-basket', explanation: '' }, ctx);
+    expect(waited).toBe(true);
+  });
+
   it('declines a pop-up with its own decline control and records the tap', async () => {
     await fresh();
     const prompt = obs.snapshot.cues.find((c) => c.kind === 'prompt')!;

@@ -176,7 +176,8 @@ export function readAddOnControls(root: ParentNode, refs: RefRegistry): ControlF
     const label = cleanText(labelEl?.textContent).slice(0, 140);
     const amount = parseRupees(label);
     if (!label || !/[A-Za-z]{3,}/.test(label)) continue;
-    const checked = input instanceof HTMLInputElement ? input.checked : input.getAttribute('aria-checked') === 'true';
+    // tagName, not instanceof: the page may live in another frame (the Agent Guard console reads an iframe).
+    const checked = input.tagName === 'INPUT' ? (input as HTMLInputElement).checked : input.getAttribute('aria-checked') === 'true';
     const id = input.id || `${amount ? 'addon' : 'consent'}-${out.length + 1}-${label.slice(0, 16).toLowerCase().replace(/\W+/g, '-')}`;
     const kind = input.getAttribute('role') === 'switch' ? 'toggle' : 'checkbox';
     if (amount !== null && amount > 0) {

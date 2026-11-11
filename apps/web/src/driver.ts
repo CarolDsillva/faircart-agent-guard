@@ -25,13 +25,15 @@ export async function runAction(action: Action, ctx: DriverContext): Promise<Dri
     if (!el) return { result: 'stale' };
 
     if (action.tool === 'set_control') {
-      const input = el instanceof HTMLInputElement ? el : (el.querySelector('input') ?? el.closest('label')?.querySelector('input') ?? null);
+      // tagName, not instanceof: the store lives in an iframe, a different window.
+      const input = (el.tagName === 'INPUT' ? el : (el.querySelector('input') ?? el.closest('label')?.querySelector('input') ?? null)) as HTMLInputElement | null;
       if (input && input.checked === action.checked) return { result: 'done' };
       (input ?? (el as HTMLElement)).click();
       return { result: 'done' };
     }
 
-    const navigates = el instanceof HTMLAnchorElement && !!el.getAttribute('href') && el.getAttribute('href') !== '#';
+    const href = el.tagName === 'A' ? el.getAttribute('href') : null;
+    const navigates = !!href && href !== '#';
     const nav = navigates ? ctx.waitForNavigation() : null;
     (el as HTMLElement).click();
     if (nav) await nav;

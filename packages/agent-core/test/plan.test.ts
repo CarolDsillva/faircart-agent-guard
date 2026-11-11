@@ -35,6 +35,19 @@ describe('validatePlan', () => {
     expect(validatePlan('{"actions":', snap).ok).toBe(false);
     expect(validatePlan({ actions: [] }, snap).ok).toBe(false);
   });
+  it('gives the model a flat action schema (no one-of unions), checked strictly afterwards', () => {
+    const json = JSON.stringify(PLAN_JSON_SCHEMA);
+    expect(json).not.toMatch(/"(anyOf|oneOf)"/);
+    const action = (PLAN_JSON_SCHEMA as any).properties.actions.items;
+    expect(action.properties.tool.enum).toEqual(['set_control', 'click', 'dismiss_prompt', 'request_checkout', 'ask_user', 'stop']);
+    expect(action.required).toEqual(['tool', 'explanation']);
+  });
+
+  it('drops fields that do not belong to the chosen tool', () => {
+    const r = validatePlan({ actions: [{ tool: 'click', controlId: 'act:add-to-basket', promptId: 'x', checked: true, explanation: 'Adding.' }] }, snap);
+    expect(r).toEqual({ ok: true, plan: { actions: [{ tool: 'click', controlId: 'act:add-to-basket', explanation: 'Adding.' }] } });
+  });
+
   it('has no tool that touches money or the mandate', () => {
     const tools = JSON.stringify(PLAN_JSON_SCHEMA);
     for (const t of ['set_control', 'click', 'dismiss_prompt', 'request_checkout', 'ask_user', 'stop']) expect(tools).toContain(t);
