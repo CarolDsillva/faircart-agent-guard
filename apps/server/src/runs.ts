@@ -41,6 +41,8 @@ export interface Run {
   authzUsed: boolean;
   orderId?: string;
   capture?: { id: string; status: string; amount: string };
+  /** PayPal's capture webhook arrived before the capture request finished. */
+  paypalCompleted?: boolean;
   /** The last total the store showed at checkout. */
   lastCheckoutPaise: number;
   /** Paid extras and unexplained amounts the store put in front of the agent, keyed so each counts once. */

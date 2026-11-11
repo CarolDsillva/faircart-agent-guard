@@ -9,6 +9,7 @@ declare global {
         createOrder: () => Promise<string>;
         onApprove: (data: { orderID: string }) => Promise<void>;
         onError: (err: unknown) => void;
+        onCancel?: () => void;
       }) => { render: (el: HTMLElement) => Promise<void>; close?: () => void };
     };
   }
@@ -31,10 +32,11 @@ interface Props {
   createOrder: () => Promise<string>;
   onCaptured: (orderId: string) => Promise<void>;
   onError: (e: unknown) => void;
+  onCancel: () => void;
 }
 
 /** Real PayPal buttons in sandbox mode; a clearly labelled simulated approval otherwise. */
-export function PayPalPay({ config, createOrder, onCaptured, onError }: Props) {
+export function PayPalPay({ config, createOrder, onCaptured, onError, onCancel }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -51,6 +53,7 @@ export function PayPalPay({ config, createOrder, onCaptured, onError }: Props) {
             createOrder,
             onApprove: async (data) => onCaptured(data.orderID),
             onError,
+            onCancel,
           })
           .render(box.current);
       })
@@ -58,7 +61,7 @@ export function PayPalPay({ config, createOrder, onCaptured, onError }: Props) {
     return () => {
       closed = true;
     };
-  }, [config, createOrder, onCaptured, onError]);
+  }, [config, createOrder, onCaptured, onError, onCancel]);
 
   if (config.paypalMode === 'sandbox') return <div ref={box} className="paypal" />;
 

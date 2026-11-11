@@ -73,3 +73,58 @@ describe('DemoMart merchant checkout', () => {
     expect((await call('GET', '/api/config')).json).toEqual({ paypalClientId: 'mock-client', paypalMode: 'mock', inrPerUsd: 88 });
   });
 });
+
+describe('merchant checkout retries', () => {
+  it('re-verifies the order when the first attempt failed after creating it', async () => {
+    const paypal = new MockPayPal();
+    const real = paypal.getOrder.bind(paypal);
+    let calls = 0;
+    paypal.getOrder = async (id: string) => {
+      if (++calls === 1) throw new Error('network blip');
+      return real(id);
+    };
+    const { call, runId, authorization } = await authorized(paypal);
+    expect((await call('POST', '/shop/api/checkout', { authorization })).status).toBe(500);
+    const retry = await call('POST', '/shop/api/checkout', { authorization });
+    expect(retry.status).toBe(200);
+    expect(retry.json.state).toBe('order_verified');
+    expect(paypal.created).toBe(1);
+    expect((await call('GET', `/api/runs/${runId}`)).json.state).toBe('order_verified');
+  });
+
+  it('never hands out an order FairCart rejected', async () => {
+    const paypal = new MockPayPal();
+    paypal.tamper = (body) => {
+      body.purchase_units[0]!.amount.value = '3.29';
+      return body;
+    };
+    const { call, authorization } = await authorized(paypal);
+    expect((await call('POST', '/shop/api/checkout', { authorization })).status).toBe(422);
+    expect((await call('POST', '/shop/api/checkout', { authorization })).status).toBe(422);
+  });
+
+  it('gives two simultaneous first calls the same verified order', async () => {
+    const { call, paypal, authorization } = await authorized();
+    const [a, b] = await Promise.all([call('POST', '/shop/api/checkout', { authorization }), call('POST', '/shop/api/checkout', { authorization })]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(a.json.orderId).toBe(b.json.orderId);
+    expect(paypal.created).toBe(1);
+  });
+
+  it('settles when the PayPal webhook arrives before the capture is recorded', async () => {
+    const { call, runId, authorization } = await authorized();
+    const { json } = await call('POST', '/shop/api/checkout', { authorization });
+    await call('POST', '/api/paypal/webhook', { event_type: 'PAYMENT.CAPTURE.COMPLETED', resource: { invoice_id: authorization.id } }, { 'paypal-transmission-sig': 'mock' });
+    await call('POST', '/shop/api/capture', { runId, orderId: json.orderId });
+    expect((await call('GET', `/api/runs/${runId}`)).json.state).toBe('settled');
+  });
+
+  it('answers run_expired when the run is gone', async () => {
+    const { call, authorization } = await authorized();
+    const r = await call('POST', '/shop/api/checkout', { authorization: { ...authorization } }, {});
+    expect(r.status).toBe(200);
+    const store2 = await authorized();
+    const gone = await store2.call('POST', '/shop/api/checkout', { authorization });
+    expect([gone.status, gone.json.error]).toEqual([404, 'run_expired']);
+  });
+});

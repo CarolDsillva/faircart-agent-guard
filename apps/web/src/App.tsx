@@ -77,7 +77,7 @@ export function App() {
                       </li>
                     ))}
                   </ul>
-                  <PayPalPay config={config} createOrder={run.createOrder} onCaptured={run.captured} onError={run.payFailed} />
+                  <PayPalPay config={config} createOrder={run.createOrder} onCaptured={run.captured} onError={run.payFailed} onCancel={run.payCancelled} />
                 </section>
               )}
               {run.phase === 'paid' && run.view && <ReceiptCard view={run.view} storeName={storeName} simulated={config?.paypalMode !== 'sandbox'} />}
@@ -195,6 +195,7 @@ function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove
   const fees = reasons.filter((r) => r.code === 'FEE_NOT_ALLOWED' && r.subject && r.paise !== undefined);
   const other = reasons.filter((r) => !fees.includes(r));
   const [picked, setPicked] = useState<string[]>(fees.map((f) => f.subject!));
+  const [busy, setBusy] = useState(false);
   const kindOf = (label: string) => (/handling/i.test(label) ? 'handling' : /platform/i.test(label) ? 'platform' : /convenience/i.test(label) ? 'convenience' : /deliver|shipping/i.test(label) ? 'delivery' : 'other');
   return (
     <section className="card card--ask" aria-live="assertive">
@@ -225,11 +226,17 @@ function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove
       )}
       <div className="row">
         {fees.length > 0 && (
-          <button className="btn btn--primary" disabled={!picked.length} onClick={() => onApprove(fees.filter((f) => picked.includes(f.subject!)).map((f) => ({ label: f.subject!, kind: kindOf(f.subject!) as Approval['kind'], paise: f.paise! })))}>
+          <button className="btn btn--primary" disabled={!picked.length || busy} onClick={() => {
+              setBusy(true);
+              onApprove(fees.filter((f) => picked.includes(f.subject!)).map((f) => ({ label: f.subject!, kind: kindOf(f.subject!) as Approval['kind'], paise: f.paise! })));
+            }}>
             Approve {picked.length === fees.length ? 'these charges' : 'selected charges'}
           </button>
         )}
-        <button className="btn btn--ghost" onClick={onStop}>
+        <button className="btn btn--ghost" disabled={busy} onClick={() => {
+            setBusy(true);
+            onStop();
+          }}>
           Stop, don't buy
         </button>
       </div>

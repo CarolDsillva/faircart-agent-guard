@@ -3,7 +3,7 @@ import { centsToPayPal, INR_PER_USD } from '@faircart/money';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { PayPal, PayPalConfig, OrderBody } from '../paypal/types';
-import type { RunStore } from '../runs';
+import type { Run, RunStore } from '../runs';
 import { runView } from './runs';
 
 export interface MerchantDeps {
@@ -54,33 +54,55 @@ export function orderBody(a: Authorization): OrderBody {
 export function merchantRoutes(deps: MerchantDeps) {
   const { store, paypal } = deps;
   const app = new Hono();
+  const inflight = new Map<string, Promise<{ status: 200 | 422; body: object }>>();
 
   app.post('/shop/api/checkout', async (c) => {
     const { authorization } = z.object({ authorization: AuthorizationBody }).parse(await c.req.json());
     const ok = verifyAuthorization(authorization, deps.secret, deps.now(), { checkExpiry: true });
     if (!ok.ok) return c.json({ error: 'bad_authorization', reason: ok.reason }, 401);
     const run = store.get(authorization.runId);
-    if (!run || run.authorization?.sig !== authorization.sig) return c.json({ error: 'bad_authorization', reason: 'unknown' }, 401);
+    if (!run) return c.json({ error: 'run_expired' }, 404);
+    if (run.authorization?.sig !== authorization.sig) return c.json({ error: 'bad_authorization', reason: 'unknown' }, 401);
 
-    // A retry of the same authorization gets the same order: single use, idempotent.
-    if (run.authzUsed && run.orderId) return c.json({ orderId: run.orderId, state: run.state });
+    // One checkout per run at a time: simultaneous calls share the same answer.
+    let pending = inflight.get(run.id);
+    if (!pending) {
+      pending = checkoutOnce(run, authorization).finally(() => inflight.delete(run.id));
+      inflight.set(run.id, pending);
+    }
+    const r = await pending;
+    return c.json(r.body, r.status);
+  });
+
+  /**
+   * Single use and idempotent: the same authorization always leads to the same
+   * PayPal order, and an order is only handed out once FairCart has checked it.
+   */
+  async function checkoutOnce(run: Run, authorization: Authorization): Promise<{ status: 200 | 422; body: object }> {
+    if ((run.state === 'order_verified' || run.state === 'captured' || run.state === 'settled') && run.orderId) {
+      return { status: 200, body: { orderId: run.orderId, state: run.state } };
+    }
+    if (run.state === 'failed') return { status: 422, body: { error: 'order_rejected', reasons: run.lastGuard ?? [] } };
     store.require(run, 'authorized');
 
-    const created = await paypal.createOrder(orderBody(authorization), authorization.id);
-    run.authzUsed = true;
-    run.orderId = created.id;
-    store.audit(run, 'merchant', 'order_created', { orderId: created.id });
+    if (!run.orderId) {
+      const created = await paypal.createOrder(orderBody(authorization), authorization.id);
+      run.authzUsed = true;
+      run.orderId = created.id;
+      store.audit(run, 'merchant', 'order_created', { orderId: created.id });
+    }
 
-    // FairCart reads the PayPal order itself before anyone approves it.
-    const reasons = compareOrder(authorization, await paypal.getOrder(created.id));
+    // FairCart reads the PayPal order itself before anyone approves it. If this
+    // throws, the run stays 'authorized' and a retry checks the same order again.
+    const reasons = compareOrder(authorization, await paypal.getOrder(run.orderId));
     if (reasons.length) {
       run.lastGuard = reasons;
       store.fail(run, 'guard', 'The PayPal order did not match what you approved.');
-      return c.json({ error: 'order_mismatch', reasons }, 422);
+      return { status: 422, body: { error: 'order_mismatch', reasons } };
     }
-    store.transition(run, 'order_verified', 'guard', 'order_verified', { orderId: created.id });
-    return c.json({ orderId: created.id, state: run.state });
-  });
+    store.transition(run, 'order_verified', 'guard', 'order_verified', { orderId: run.orderId });
+    return { status: 200, body: { orderId: run.orderId, state: run.state } };
+  }
 
   app.post('/shop/api/capture', async (c) => {
     const { runId, orderId } = z.object({ runId: z.string(), orderId: z.string() }).parse(await c.req.json());
@@ -98,6 +120,8 @@ export function merchantRoutes(deps: MerchantDeps) {
     }
     run.capture = cap;
     store.transition(run, 'captured', 'paypal', 'captured', cap);
+    // PayPal's webhook can beat this request; settle now if it already arrived.
+    if (run.paypalCompleted) store.transition(run, 'settled', 'paypal', 'settled_by_webhook');
     return c.json(runView(run));
   });
 
@@ -110,6 +134,7 @@ export function merchantRoutes(deps: MerchantDeps) {
     if (event.event_type === 'PAYMENT.CAPTURE.COMPLETED' && event.resource?.invoice_id) {
       const run = store.findByAuthorization(event.resource.invoice_id);
       if (run?.state === 'captured') store.transition(run, 'settled', 'paypal', 'settled_by_webhook');
+      else if (run?.state === 'order_verified') run.paypalCompleted = true;
     }
     return c.json({ ok: true });
   });

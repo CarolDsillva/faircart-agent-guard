@@ -60,7 +60,9 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const seq = useRef(0);
   const pageCount = useRef(0);
   const taps = useRef<TapEvent[]>([]);
-  const cancelled = useRef(false);
+  /** Each run loop has a generation; starting, stopping or resetting bumps it so stale loops end. */
+  const generation = useRef(0);
+  const approving = useRef(false);
   const idRef = useRef(0);
 
   const push = useCallback((e: Omit<Entry, 'id'>) => setEntries((xs) => [...xs, { ...e, id: ++idRef.current }]), []);
@@ -94,19 +96,22 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     return observeDocument(doc, doc.URL, `page-${pageCount.current}`, ++seq.current);
   }, [frame]);
 
-  const fail = useCallback((message: string) => {
-    setError(message);
+  const fail = useCallback((e: unknown) => {
+    const expired = e instanceof ApiError && e.body.error === 'run_expired';
+    setError(expired ? 'This run has expired (the server may have restarted). Start a new run.' : e instanceof Error ? e.message : String(e));
     setPhase('failed');
   }, []);
 
   /** Plan and act until the guard passes, a human is needed, or the run ends. */
   const drive = useCallback(
     async (id: string) => {
+      const gen = ++generation.current;
+      const live = () => gen === generation.current;
       setPhase('running');
       let noticedBackup = false;
       try {
         for (let turn = 0; turn < 16; turn++) {
-          if (cancelled.current) return;
+          if (!live()) return;
           const obs = await observe();
           const res = await api.observe(id, obs, taps.current.splice(0));
           addFindings(res.findings);
@@ -123,7 +128,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
 
           let replan = false;
           for (const action of res.plan.actions) {
-            if (cancelled.current) return;
+            if (!live()) return;
             await sleep(PACE_MS);
             if (action.tool === 'request_checkout') {
               push({ kind: 'action', title: describe(action), detail: action.explanation });
@@ -168,15 +173,14 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         }
         fail('The agent ran out of steps.');
       } catch (e) {
-        if (e instanceof ApiError && e.body.error === 'run_expired') fail('This run has expired (the server may have restarted). Start a new run.');
-        else fail(e instanceof Error ? e.message : String(e));
+        if (live()) fail(e);
       }
     },
     [addFindings, fail, observe, patchLast, push, waitForNavigation],
   );
 
   const reset = useCallback((s: Store) => {
-    cancelled.current = true;
+    generation.current += 1;
     setStore(s);
     setPhase('idle');
     setRunId(null);
@@ -193,7 +197,6 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
 
   const start = useCallback(
     async (m: MandateInput) => {
-      cancelled.current = false;
       setError(null);
       try {
         const { runId: id } = await api.createRun({
@@ -205,7 +208,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         push({ kind: 'human', title: 'You signed your instructions.', detail: `${PRODUCT.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}` });
         await drive(id);
       } catch (e) {
-        fail(e instanceof Error ? e.message : String(e));
+        fail(e);
       }
     },
     [drive, fail, push],
@@ -213,21 +216,25 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
 
   const approve = useCallback(
     async (approved: Approval[]) => {
-      if (!runId) return;
+      if (!runId || approving.current) return;
+      approving.current = true;
       try {
         await api.amend(runId, approved);
         push({ kind: 'human', title: `You approved ${approved.map((a) => `${a.label} ₹${a.paise / 100}`).join(' and ')}.`, detail: 'Only you can add charges to your instructions. The agent cannot.' });
         setReasons([]);
+        approving.current = false;
         await drive(runId);
       } catch (e) {
-        fail(e instanceof Error ? e.message : String(e));
+        fail(e);
+      } finally {
+        approving.current = false;
       }
     },
     [drive, fail, push, runId],
   );
 
   const stop = useCallback(async () => {
-    cancelled.current = true;
+    generation.current += 1;
     if (runId && phase === 'awaiting') await api.stop(runId).catch(() => undefined);
     push({ kind: 'human', title: 'You stopped the run. Nothing was paid.' });
     setPhase('stopped');
@@ -250,8 +257,10 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
       push({ kind: 'pay', title: `PayPal captured US$${v.capture?.amount}.`, detail: `Capture ${v.capture?.id}`, tone: 'pass' });
       setPhase('paid');
       // The webhook may settle the payment a few seconds later.
+      const gen = generation.current;
       for (let i = 0; i < 10; i++) {
         await sleep(3000);
+        if (gen !== generation.current) return;
         const fresh = await api.run(runId).catch(() => null);
         if (!fresh) return;
         setView(fresh);
@@ -264,10 +273,13 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const payFailed = useCallback(
     (e: unknown) => {
       if (e instanceof ApiError && e.body.reasons) setReasons(e.body.reasons);
-      fail(e instanceof Error ? e.message : String(e));
+      fail(e);
     },
     [fail],
   );
 
-  return { phase, runId, entries, findings, reasons, authorization, planner, view, error, store, onFrameLoad, reset, start, approve, stop, createOrder, captured, payFailed };
+  /** The buyer closed PayPal without approving: back to "Ready to pay". */
+  const payCancelled = useCallback(() => setPhase('authorized'), []);
+
+  return { phase, runId, entries, findings, reasons, authorization, planner, view, error, store, onFrameLoad, reset, start, approve, stop, createOrder, captured, payFailed, payCancelled };
 }
