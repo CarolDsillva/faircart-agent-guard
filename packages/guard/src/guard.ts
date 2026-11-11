@@ -17,6 +17,8 @@ export type ReasonCode =
 export interface Reason {
   code: ReasonCode;
   label: string;
+  /** The bill line this reason is about, verbatim, when there is one. */
+  subject?: string;
   paise?: number;
   findingId?: string;
   fixable: boolean;
@@ -94,7 +96,7 @@ export function guard(input: GuardInput): GuardResult {
     }
     computed += paise;
     if (r.kind === 'item' || r.kind === 'service' || r.kind === 'membership') {
-      reasons.push({ code: 'UNREQUESTED_ITEM', label: `"${r.label}" is not what you asked for`, paise, fixable: hasRemoveControl(snapshot, r.label) });
+      reasons.push({ code: 'UNREQUESTED_ITEM', label: `"${r.label}" is not what you asked for`, subject: r.label, paise, fixable: hasRemoveControl(snapshot, r.label) });
       continue;
     }
     if (r.kind === 'fee' && paise > 0) {
@@ -102,7 +104,7 @@ export function guard(input: GuardInput): GuardResult {
       const cap = mandate.feeCapsPaise?.[kind];
       const allowed = (mandate.allowedFees.includes(kind) && (cap === undefined || paise <= cap)) || isApproved(mandate, r.label, paise);
       if (allowed) lines.push({ label: r.label, kind: 'fee', qty: 1, paise, usdCents: paiseToUsdCents(paise) });
-      else reasons.push({ code: 'FEE_NOT_ALLOWED', label: `"${r.label}" wasn't in your instructions`, paise, fixable: hasRemoveControl(snapshot, r.label) });
+      else reasons.push({ code: 'FEE_NOT_ALLOWED', label: `"${r.label}" wasn't in your instructions`, subject: r.label, paise, fixable: hasRemoveControl(snapshot, r.label) });
     }
   }
 

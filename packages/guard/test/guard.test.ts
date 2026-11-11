@@ -99,3 +99,13 @@ describe('guard', () => {
     expect(codes(run({ bill: null }))).toEqual(['UNREADABLE_AMOUNT']);
   });
 });
+
+describe('reason subjects', () => {
+  it('names the exact bill line a fee reason is about', () => {
+    const r = guard({ mandate: mandate(), snapshot: snapshot(), bill: demoBill(), findings: [], runId: 'r', now: NOW, secret: SECRET });
+    expect(r.verdict === 'BLOCK' && r.reasons.filter((x) => x.code === 'FEE_NOT_ALLOWED').map((x) => [x.subject, x.paise])).toEqual([
+      ['Handling charge', 1500],
+      ['Platform fee', 900],
+    ]);
+  });
+});

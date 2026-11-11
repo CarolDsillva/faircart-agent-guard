@@ -1,0 +1,23 @@
+{
+  "name": "@faircart/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@faircart/adapters": "0.1.0",
+    "@faircart/agent-core": "0.1.0",
+    "@faircart/guard": "0.1.0",
+    "@faircart/money": "0.1.0",
+    "@faircart/rules": "0.1.0",
+    "@faircart/schemas": "0.1.0",
+    "@faircart/shop": "0.1.0",
+    "@hono/node-server": "^2.1.7",
+    "hono": "^4.13.18",
+    "tsx": "^4.23.15",
+    "zod": "^4.1.0"
+  }
+}

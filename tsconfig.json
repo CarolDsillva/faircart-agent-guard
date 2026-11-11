@@ -15,5 +15,5 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["packages/*/src", "packages/*/test", "scripts"]
+  "include": ["packages/*/src", "packages/*/test", "apps/server/src", "apps/server/test", "apps/shop/src", "apps/shop/test", "scripts"]
 }
