@@ -4,6 +4,7 @@ import type { Finding, TapEvent } from '@faircart/schemas';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError, type RunView } from './api';
 import { runAction } from './driver';
+import { mark, pointAt, type MarkTone } from './overlay';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
 export type Store = 'demomart' | 'fairmart';
@@ -52,7 +53,48 @@ function walletReply(popup: Window | null): Promise<{ approvalTokenId: string | 
 
 export const PRODUCT = { sku: 'DEMO-ATTA-5KG', title: 'Sunrise Chakki Atta 5 kg', price: 289 };
 
-const PACE_MS = 700;
+const PACE_MS = 500;
+const MONEY = new Set(['basket_sneaking', 'drip_pricing', 'subscription_trap', 'forced_action']);
+
+/** FairCart's findings, drawn on the page where it found them. */
+function showFindings(obs: Observation, findings: Finding[]) {
+  const doc = obs.refs && findings.length ? findings.map((f) => (f.elementRef ? obs.refs.get(f.elementRef) : undefined)).find(Boolean)?.ownerDocument : undefined;
+  if (!doc) return;
+  mark(
+    doc,
+    'findings',
+    findings.flatMap((f) => {
+      const el = f.elementRef ? obs.refs.get(f.elementRef) : undefined;
+      return el ? [{ el, label: f.title, tone: (MONEY.has(f.category) ? 'money' : 'manipulation') as MarkTone }] : [];
+    }),
+  );
+}
+
+/** The checker's verdict, drawn on the bill lines it is about. */
+function showVerdict(obs: Observation, reasons: Reason[] | null) {
+  const rows = obs.bill?.rows ?? [];
+  const el = (ref: string | undefined) => (ref ? obs.refs.get(ref) : undefined);
+  const doc = rows.map((r) => el(r.elRef)).find(Boolean)?.ownerDocument;
+  if (!doc) return;
+  if (!reasons) {
+    const total = rows.find((r) => r.kind === 'total');
+    const t = el(total?.elRef);
+    mark(doc, 'verdict', t ? [{ el: t, label: 'Matches your mandate', tone: 'ok' }] : []);
+    return;
+  }
+  const items: { el: Element; label: string; tone: MarkTone }[] = [];
+  for (const r of reasons) {
+    if (r.subject) {
+      const row = rows.find((x) => x.label === r.subject);
+      const e = el(row?.elRef);
+      if (e) items.push({ el: e, label: r.code === 'FEE_NOT_ALLOWED' ? 'Fee not in your mandate' : 'Not what you asked for', tone: 'blocked' });
+    } else if (r.code === 'UNEXPLAINED_AMOUNT') {
+      const e = el(rows.find((x) => x.kind === 'total')?.elRef);
+      if (e) items.push({ el: e, label: `${r.paise ? `₹${r.paise / 100} ` : ''}nobody explains`, tone: 'blocked' });
+    }
+  }
+  mark(doc, 'verdict', items);
+}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function describe(a: Action): string {
@@ -146,6 +188,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           if (!live()) return;
           const obs = await observe();
           const res = await api.observe(id, obs, taps.current.splice(0));
+          showFindings(obs, res.findings);
           addFindings(res.findings);
           if (res.planner) setPlanner(res.planner);
           if (res.planner === 'backup' && res.plannerError && !noticedBackup) {
@@ -165,8 +208,10 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
             if (action.tool === 'request_checkout') {
               push({ kind: 'action', title: describe(action), detail: action.explanation });
               // The checker judges the page as it is now, not as it was when the plan was made.
-              await api.observe(id, await observe(), taps.current.splice(0), false);
+              const checked = await observe();
+              await api.observe(id, checked, taps.current.splice(0), false);
               const g = await api.checkout(id);
+              showVerdict(checked, g.verdict === 'PASS' ? null : g.reasons);
               if (g.verdict === 'PASS') {
                 setReasons([]);
                 setAuthorization(g.authorization);
@@ -197,7 +242,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
               setPhase('awaiting');
               return;
             }
-            const r = await runAction(action, { observe, waitForNavigation });
+            const r = await runAction(action, { observe, waitForNavigation, point: (el) => pointAt(el) });
             if (r.tap) taps.current.push(r.tap);
             if (r.result === 'stale') {
               patchLast('stale', 'The page changed, so the agent is looking again.');

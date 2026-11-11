@@ -8,6 +8,8 @@ export interface DriverContext {
   observe: () => Promise<Observation>;
   /** Resolves when the store has finished loading its next page. */
   waitForNavigation: () => Promise<void>;
+  /** Show the viewer where the agent is about to act (cursor glide and tap). */
+  point?: (el: Element) => Promise<void>;
 }
 
 export type DriverResult = { result: 'done' | 'stale'; tap?: TapEvent };
@@ -23,6 +25,7 @@ export async function runAction(action: Action, ctx: DriverContext): Promise<Dri
     const control = obs.snapshot.controls.find((c) => c.id === action.controlId);
     const el = control?.elRef ? obs.refs.get(control.elRef) : undefined;
     if (!el) return { result: 'stale' };
+    await ctx.point?.(el);
 
     if (action.tool === 'set_control') {
       // tagName, not instanceof: the store lives in an iframe, a different window.
@@ -45,6 +48,7 @@ export async function runAction(action: Action, ctx: DriverContext): Promise<Dri
       if (c.role !== 'decline' || !c.elRef) continue;
       const el = obs.refs.get(c.elRef);
       if (el && dismissControlFor(el)?.promptId === action.promptId) {
+        await ctx.point?.(el);
         (el as HTMLElement).click();
         return { result: 'done', tap: { controlId: c.id, action: 'dismiss', at: new Date().toISOString() } };
       }
