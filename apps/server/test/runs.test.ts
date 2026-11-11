@@ -3,12 +3,13 @@ import { ScriptedProvider } from '@faircart/agent-core';
 import { initialState } from '@faircart/shop';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
+import { MockPayPal } from '../src/paypal/mock';
 import { RunStore } from '../src/runs';
 import { checkoutPlan, MANDATE_REQUEST, observation, untickPlan } from './fixtures';
 
 function setup(plans: unknown[]) {
   const store = new RunStore();
-  const app = createApp({ store, provider: new ScriptedProvider(plans), secret: 'test-secret', now: () => new Date('2026-11-12T10:00:00Z') });
+  const app = createApp({ store, provider: new ScriptedProvider(plans), secret: 'test-secret', now: () => new Date('2026-11-12T10:00:00Z'), paypal: new MockPayPal(), paypalConfig: { clientId: 'mock-client', mode: 'mock' } });
   const call = async (method: string, path: string, body?: unknown) => {
     const res = await app.request(path, { method, headers: { 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
     return { status: res.status, json: (await res.json()) as any };
