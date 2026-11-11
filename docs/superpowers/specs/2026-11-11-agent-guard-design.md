@@ -226,3 +226,23 @@ PayPal create/verify/approve/capture, console + receipt, deploy, README.
 3. PayPal sandbox app credentials into `.env` (never chat); sandbox buyer account; GitHub owner;
    Render account (Starter instance recommended during judging).
 4. Who records the video / writes Devpost text.
+
+## 14. v4 addendum (12 Nov): mandates and the agent wallet
+
+**Why:** a PayPal reviewer reads "a human approves every purchase in a pop-up" as a guarded checkout, not agentic payment. The design already matches AP2's mandate model; say so, and let the agent pay without the human present when the purchase stays inside a signed mandate.
+
+**Vocabulary (AP2-aligned), UI, README and receipt:**
+- *Intent mandate* = the signed instructions (`Mandate`). Shown with a short id (`IM-xxxxxx`) and version.
+- *Cart mandate* = the checker's signed authorization (`Authorization`). Shown as `CM-xxxxxx`. The receipt cites both ids.
+- Code type names stay as they are; only user-facing words change.
+
+**Agent wallet (human-not-present payment):**
+1. Signing gains an option: "Let the agent pay on its own, within these rules". `Mandate.autopay: boolean`.
+2. With autopay, before shopping the user links PayPal once: server creates a Vault v3 setup token (`usage_type MERCHANT`, `customer_type CONSUMER`, return URL `/wallet-return.html`); the console opens PayPal's approve link in a pop-up; the return page posts the approval back; server exchanges the setup token for a payment token and keeps it on the run (`run.wallet`). Mock mode simulates both steps, labelled.
+3. Guard PASS with autopay → `POST /shop/api/agent-pay {authorization}`: DemoMart creates the Orders v2 order with `payment_source.paypal.vault_id`, FairCart reads it back and compares (unchanged), then DemoMart captures immediately. No pop-up. Same idempotency, same capture check, same webhook.
+4. Anything outside the mandate still stops for the human (fees by name). Approving a fee amends the intent mandate; autopay continues afterwards. Without autopay, today's pop-up flow is unchanged.
+5. Server refuses agent-pay unless the mandate was signed with autopay, a wallet is linked, and the cart mandate verifies. The planner still has no payment tool.
+
+**Receipt:** adds "Saved ₹158 (55%)" (tried − paid), the two mandate ids, and "Paid by your agent, no pop-up" when autopay was used.
+
+**Honest limits:** the payment token lives in server memory for the run (30 min); a real wallet would keep it with PayPal and the customer. Sandbox only.
