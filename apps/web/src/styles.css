@@ -1,0 +1,507 @@
+/* FairCart Agent Guard: quiet ledger UI around one loud thing, the receipt. */
+:root {
+  --paper: #f5f7f6;
+  --card: #ffffff;
+  --ink: #172033;
+  --slate: #5a6478;
+  --line: #dde2e8;
+  --pass: #11704f;
+  --pass-bg: #e7f4ee;
+  --block: #b3261e;
+  --block-bg: #fbeceb;
+  --saffron: #b97700;
+  --saffron-bg: #fdf4e1;
+  --paypal: #0070ba;
+  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, 'Cascadia Mono', monospace;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+:focus-visible {
+  outline: 3px solid var(--paypal);
+  outline-offset: 2px;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+/* Header */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.brand__mark {
+  color: var(--pass);
+  display: grid;
+}
+.brand h1 {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.brand p {
+  color: var(--slate);
+  font-size: 14px;
+}
+.status {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pill {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--slate);
+  background: var(--paper);
+}
+.pill--warn {
+  color: var(--saffron);
+  border-color: #f0d9a6;
+  background: var(--saffron-bg);
+}
+
+/* Two panes */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr);
+  min-height: 0;
+}
+.pane {
+  min-height: 0;
+}
+.pane--store {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-right: 1px solid var(--line);
+  background: #eef1f0;
+}
+.store-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+.store-bar__title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--slate);
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--card);
+}
+.seg button {
+  font: 500 13px var(--sans);
+  border: 0;
+  background: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: var(--slate);
+  cursor: pointer;
+}
+.seg button.is-on {
+  background: var(--ink);
+  color: #fff;
+}
+.seg button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+iframe {
+  width: calc(100% - 24px);
+  height: calc(100% - 12px);
+  margin: 0 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+.pane--run {
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+.card h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.muted {
+  color: var(--slate);
+}
+.small {
+  font-size: 13px;
+}
+
+/* Mandate */
+.mandate {
+  display: grid;
+  gap: 14px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.field > span,
+.field legend {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0;
+}
+select,
+input[type='number'] {
+  font: 500 15px var(--sans);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  background: #fff;
+}
+select:disabled {
+  background: var(--paper);
+  color: var(--ink);
+}
+.money-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.money-input input {
+  width: 120px;
+}
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--ink);
+}
+
+/* Buttons */
+.btn {
+  font: 600 15px var(--sans);
+  border-radius: var(--radius-sm);
+  padding: 11px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn--primary {
+  background: var(--ink);
+  color: #fff;
+}
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+  justify-self: start;
+  align-self: flex-start;
+}
+.btn--paypal {
+  background: var(--paypal);
+  color: #fff;
+  width: 100%;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Timeline: a real sequence, so it is numbered */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+  display: grid;
+  gap: 2px;
+}
+.t {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+}
+.t__who {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  padding-top: 2px;
+}
+.t__who::before {
+  content: counter(step) '. ';
+  color: #9aa3b2;
+}
+.t__title {
+  font-weight: 500;
+}
+.t__detail {
+  color: var(--slate);
+  font-size: 13.5px;
+}
+.t--human {
+  background: #f1f3f8;
+}
+.t--block {
+  background: var(--block-bg);
+  border-left-color: var(--block);
+}
+.t--block .t__title {
+  color: var(--block);
+  font-weight: 700;
+}
+.t--pass {
+  background: var(--pass-bg);
+  border-left-color: var(--pass);
+}
+.t--pass .t__title {
+  color: var(--pass);
+  font-weight: 700;
+}
+.t--warn {
+  background: var(--saffron-bg);
+  border-left-color: var(--saffron);
+}
+.t--stale .t__detail {
+  font-style: italic;
+}
+.t--thinking .t__title {
+  color: var(--slate);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .t--thinking .t__title {
+    animation: breathe 1.4s ease-in-out infinite;
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Findings */
+.card--findings {
+  border-color: #f0d9a6;
+  background: var(--saffron-bg);
+}
+.findings {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+/* Ask the human */
+.card--ask {
+  border: 2px solid var(--ink);
+}
+.card--ask p {
+  color: var(--slate);
+}
+.approve,
+.blocked,
+.lines {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.approve li,
+.lines li {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+}
+.blocked li {
+  color: var(--block);
+}
+
+/* Pay */
+.card--pay h2 {
+  font-size: 20px;
+}
+.paypal {
+  margin-top: 16px;
+  min-height: 44px;
+}
+
+/* Receipt: the one loud thing. A thermal bill. */
+.receipt {
+  font-family: var(--mono);
+  font-size: 14px;
+  background: #fff;
+  color: #1c1c1c;
+  padding: 22px 24px 30px;
+  max-width: 380px;
+  align-self: center;
+  width: 100%;
+  box-shadow: 0 1px 0 var(--line), 0 12px 30px -18px rgba(23, 32, 51, 0.45);
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .receipt {
+    animation: print 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+@keyframes print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.receipt ul {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.receipt li,
+.receipt__paid {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.receipt__store {
+  text-align: center;
+  color: #666;
+  font-size: 12px;
+}
+.receipt__tried {
+  text-align: center;
+  font-size: 17px;
+  margin: 10px 0 14px;
+}
+.receipt__tried s {
+  text-decoration-color: var(--block);
+  text-decoration-thickness: 2px;
+}
+.receipt__head {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed #bbb;
+  color: #666;
+  font-size: 12px;
+}
+.receipt li s {
+  color: var(--block);
+}
+.receipt__paid {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px solid #1c1c1c;
+  font-size: 22px;
+  font-weight: 500;
+}
+.receipt__usd {
+  text-align: right;
+  color: #555;
+  font-size: 13px;
+}
+.receipt__meta {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dashed #bbb;
+  font-size: 11.5px;
+  color: #666;
+  word-break: break-all;
+}
+
+/* Callouts */
+.callout {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: #eef1f6;
+}
+.callout--error {
+  background: var(--block-bg);
+  color: var(--block);
+}
+
+/* Narrow screens: the store above, the run below */
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .pane--store {
+    height: 70vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

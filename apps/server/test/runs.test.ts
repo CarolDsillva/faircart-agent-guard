@@ -162,3 +162,45 @@ describe('receipt', () => {
     expect(r.triedPaise).toBe(31300 + 4900 + 9900);
   });
 });
+
+describe('observe without planning', () => {
+  it('records a fresh reading for the checker without a planner call', async () => {
+    const { call } = setup([]); // no scripted plans: any planner call would fall back to backup
+    const id = await start(call);
+    const r = await call('POST', `/api/runs/${id}/observe`, { ...observation('demomart', 'pay', { ...clean, disputed: true }), plan: false });
+    expect(r.json).toMatchObject({ plan: null, state: 'shopping' });
+    const audit = (await call('GET', `/api/runs/${id}`)).json.audit;
+    expect(audit.some((e: any) => e.actor === 'planner')).toBe(false);
+    expect((await call('POST', `/api/runs/${id}/checkout`)).json.reasons.map((x: any) => x.code)).toEqual(['FEE_NOT_ALLOWED', 'FEE_NOT_ALLOWED']);
+  });
+});
+
+describe('step limits', () => {
+  it('does not count backup-planner steps against the AI limit', async () => {
+    const { call } = setup([]); // AI always fails, so every step is the backup planner
+    const id = await start(call);
+    let last: any;
+    for (let i = 0; i < 12; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
+    expect(last.json.state).toBe('shopping');
+    expect(last.json.plan).not.toBeNull();
+  });
+
+  it('still ends a run that never finishes after 20 planning steps', async () => {
+    const { call } = setup([]);
+    const id = await start(call);
+    let last: any;
+    for (let i = 0; i < 21; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
+    expect(last.json).toMatchObject({ plan: null, state: 'failed' });
+  });
+});
+
+describe('planning from the page as it is now', () => {
+  it('does not try to decline a pop-up that was already dismissed on the same page', async () => {
+    const { call } = setup([]); // backup planner
+    const id = await start(call);
+    const first = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: 'item', popup: true }));
+    expect(first.json.plan.actions.map((a: any) => a.tool)).toEqual(['dismiss_prompt']);
+    const second = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: 'item' }));
+    expect(second.json.plan.actions.map((a: any) => a.tool)).toEqual(['set_control', 'click']);
+  });
+});

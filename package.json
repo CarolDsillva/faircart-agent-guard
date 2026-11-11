@@ -13,14 +13,17 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @faircart/extension",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && npm run typecheck -w @faircart/extension",
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "tsx scripts/build-fixtures.ts",
     "icons": "python scripts/make-icons.py apps/extension/public/icon",
     "dev": "npm run dev -w @faircart/extension",
     "build": "npm run build -w @faircart/extension",
-    "zip": "npm run zip -w @faircart/extension"
+    "zip": "npm run zip -w @faircart/extension",
+    "dev:agent": "node scripts/dev-agent.mjs",
+    "build:web": "npm run build -w @faircart/web",
+    "start": "npm run start -w @faircart/server"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

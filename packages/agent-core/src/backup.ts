@@ -36,10 +36,14 @@ export function backupPlan(brief: PageBrief): Plan {
     if (actions.length) return { actions };
   }
 
+  // A pop-up covers the page: decline it, then look again before doing anything else.
+  if (page.prompts.length) {
+    return { actions: page.prompts.slice(0, 6).map((p) => ({ tool: 'dismiss_prompt' as const, promptId: p.promptId, explanation: 'Declining an upsell pop-up before doing anything else.' })) };
+  }
+
   for (const c of controls) {
     if (c.role === 'add_on' && c.checked === true) actions.push({ tool: 'set_control', controlId: c.id, checked: false, explanation: `"${c.label}" was ticked for you and isn't in your instructions.` });
   }
-  for (const p of page.prompts) actions.push({ tool: 'dismiss_prompt', promptId: p.promptId, explanation: 'Declining an upsell pop-up.' });
 
   if (page.stage === 'product') {
     const add = find(/^(add to (basket|cart|bag)|buy now)/i);

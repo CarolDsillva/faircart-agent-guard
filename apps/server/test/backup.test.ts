@@ -19,11 +19,16 @@ function planFor(obs: ReturnType<typeof observation>, lastGuard: Reason[] | null
 }
 
 describe('backup planner (no AI)', () => {
-  it('on the product page: unticks the add-on, declines the pop-up, adds to basket', () => {
+  it('with a pop-up open: only declines it, then looks again', () => {
     const steps = planFor(observation('demomart', 'item', trap, { popup: true }));
-    expect(steps[0]).toEqual(['set_control', 'protect']);
-    expect(steps.some(([t]) => t === 'dismiss_prompt')).toBe(true);
-    expect(steps.at(-1)).toEqual(['click', 'act:add-to-basket']);
+    expect(steps.map(([t]) => t)).toEqual(['dismiss_prompt']);
+  });
+
+  it('on the product page: unticks the add-on, then adds to basket', () => {
+    expect(planFor(observation('demomart', 'item', trap))).toEqual([
+      ['set_control', 'protect'],
+      ['click', 'act:add-to-basket'],
+    ]);
   });
 
   it('in the basket: removes what was not asked for, then proceeds', () => {

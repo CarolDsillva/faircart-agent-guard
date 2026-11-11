@@ -30,6 +30,7 @@ export interface Run {
   mandate: Mandate;
   journey?: Journey;
   plannerCalls: number;
+  turns: number;
   /** 'ai' until the AI planner fails once in this run; then the labelled backup planner. */
   planner: 'ai' | 'backup';
   /** One line per thing the agent or the human did, fed back to the planner. */
@@ -55,7 +56,10 @@ export class BadState extends Error {
   }
 }
 
+/** AI planner calls per run (cost and latency). */
 export const MAX_PLANNER_CALLS = 8;
+/** Planning steps per run, AI or backup: ends runs that never finish. */
+export const MAX_TURNS = 20;
 
 /** In-memory runs with a sliding TTL. A restart loses them; the UI offers a new run. */
 export class RunStore {
@@ -66,7 +70,7 @@ export class RunStore {
   ) {}
 
   create(mandate: Mandate): Run {
-    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, planner: 'ai', history: [], lastGuard: null, authzUsed: false, lastCheckoutPaise: 0, caught: new Map(), audit: [], touchedAt: this.clock() };
+    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, turns: 0, planner: 'ai', history: [], lastGuard: null, authzUsed: false, lastCheckoutPaise: 0, caught: new Map(), audit: [], touchedAt: this.clock() };
     this.audit(run, 'human', 'signed', { mandate });
     this.runs.set(run.id, run);
     return run;

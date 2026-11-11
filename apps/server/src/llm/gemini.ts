@@ -7,7 +7,7 @@ export class LLMError extends Error {
 }
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 /** Gemini planner: one forced `submit_plan` function call per page. */
 export class GeminiProvider implements LLMProvider {
@@ -20,7 +20,7 @@ export class GeminiProvider implements LLMProvider {
       contents: [{ role: 'user', parts: [{ text: messages.user }] }],
       tools: [{ functionDeclarations: [{ name: 'submit_plan', description: 'Submit the ordered plan of actions for the current page.', parametersJsonSchema: schema }] }],
       toolConfig: { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['submit_plan'] } },
-      generationConfig: { temperature: 0, thinkingConfig: this.cfg.model.startsWith('gemini-2.5') ? { thinkingBudget: 0 } : { thinkingLevel: 'low' } },
+      generationConfig: { temperature: 0, thinkingConfig: this.cfg.model.startsWith('gemini-2.5') ? { thinkingBudget: 0 } : { thinkingLevel: 'minimal' } },
     });
 
     for (let attempt = 0; ; attempt++) {
@@ -45,7 +45,7 @@ export class GeminiProvider implements LLMProvider {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.cfg.apiKey },
         body,
-        signal: AbortSignal.timeout(this.cfg.timeoutMs ?? 25_000),
+        signal: AbortSignal.timeout(this.cfg.timeoutMs ?? 20_000),
       });
     } catch (e) {
       throw new LLMError(e instanceof Error && e.name === 'TimeoutError' ? 'timeout' : 'http_error', e instanceof Error ? e.message : undefined);

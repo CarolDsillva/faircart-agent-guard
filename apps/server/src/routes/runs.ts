@@ -6,7 +6,7 @@ import { CORE, evaluate } from '@faircart/rules';
 import { FeeKind, ScreenSnapshot, TapEvent } from '@faircart/schemas';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { MAX_PLANNER_CALLS, type Run, type RunStore } from '../runs';
+import { MAX_PLANNER_CALLS, MAX_TURNS, type Run, type RunStore } from '../runs';
 
 export interface RunDeps {
   store: RunStore;
@@ -39,6 +39,7 @@ const Observe = z.object({
   snapshot: z.unknown(),
   bill: Bill.nullable(),
   taps: z.array(TapEvent).max(50).optional(),
+  plan: z.boolean().optional(),
 });
 const Amend = z.union([z.object({ stop: z.literal(true) }), z.object({ approved: z.array(Approval).max(10) })]);
 
@@ -106,10 +107,11 @@ export function runRoutes(deps: RunDeps) {
     let journey = added.journey;
     for (const t of body.taps ?? []) journey = addTap(journey, t);
     run.journey = journey;
+    // Findings use the journey (what was shown earlier on this page counts); planning and checking use the live page.
     const { findings } = evaluate({ snapshot: added.current, journey: added.earlier, taps: journey.taps }, CORE);
-    run.last = { snapshot: added.current, bill: body.bill, findings };
+    run.last = { snapshot: snap, bill: body.bill, findings };
     if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.lastCheckoutPaise = toPaise(body.bill.displayedTotal);
-    for (const ctl of added.current.controls) {
+    for (const ctl of snap.controls) {
       if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, ctl.label, toPaise(ctl.paidAmount), false);
     }
     for (const row of body.bill?.rows ?? []) {
@@ -117,24 +119,26 @@ export function runRoutes(deps: RunDeps) {
     }
     store.audit(run, 'sensor', 'observed', { stage: added.current.stage, url: body.url, findings: findings.map((f) => f.ruleId) });
 
-    if (run.state !== 'shopping') return c.json({ findings, plan: null, state: run.state });
-    if (run.plannerCalls >= MAX_PLANNER_CALLS) {
-      store.fail(run, 'server', `The agent reached its limit of ${MAX_PLANNER_CALLS} planning steps.`);
+    // A fresh reading for the checker only: no plan wanted.
+    if (body.plan === false || run.state !== 'shopping') return c.json({ findings, plan: null, state: run.state });
+    run.turns += 1;
+    if (run.turns > MAX_TURNS || (run.planner === 'ai' && run.plannerCalls >= MAX_PLANNER_CALLS)) {
+      store.fail(run, 'server', `The agent reached its limit of ${run.turns > MAX_TURNS ? MAX_TURNS : MAX_PLANNER_CALLS} planning steps.`);
       return c.json({ findings, plan: null, state: run.state, error: run.error });
     }
-    run.plannerCalls += 1;
-    const brief = buildBrief({ mandate: run.mandate, snapshot: added.current, findings, lastGuard: run.lastGuard });
+    if (run.planner === 'ai') run.plannerCalls += 1;
+    const brief = buildBrief({ mandate: run.mandate, snapshot: snap, findings, lastGuard: run.lastGuard });
     // Once the AI planner has failed in a run, the backup planner finishes it: no repeated timeouts.
     let plan: Plan;
     let plannerError: string | undefined;
-    const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), added.current) : null;
+    const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), snap) : null;
     if (ai?.ok) {
       plan = ai.plan;
     } else {
       plannerError = ai && !ai.ok ? ai.error : undefined;
       if (run.planner === 'ai') store.audit(run, 'planner', 'backup_planner', { error: plannerError });
       run.planner = 'backup';
-      const backup = validatePlan(backupPlan(brief), added.current);
+      const backup = validatePlan(backupPlan(brief), snap);
       if (!backup.ok) {
         store.fail(run, 'planner', backup.error);
         return c.json({ findings, plan: null, state: run.state, error: run.error });
