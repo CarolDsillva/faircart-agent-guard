@@ -1,5 +1,5 @@
 import { addSnapshot, addTap } from '@faircart/adapters';
-import { buildBrief, buildMessages, planWithRetry, type LLMProvider } from '@faircart/agent-core';
+import { backupPlan, buildBrief, buildMessages, planWithRetry, validatePlan, type LLMProvider, type Plan } from '@faircart/agent-core';
 import { amendMandate, Approval, guard, Mandate } from '@faircart/guard';
 import { formatInr, toPaise } from '@faircart/money';
 import { CORE, evaluate } from '@faircart/rules';
@@ -53,6 +53,7 @@ export function runView(run: Run) {
     authorization: run.authorization ?? null,
     orderId: run.orderId ?? null,
     capture: run.capture ?? null,
+    planner: run.planner,
     receipt: { triedPaise: run.triedPaise, paidPaise: run.authorization?.totalPaise ?? null, paidUsdCents: run.authorization?.totalUsdCents ?? null },
     audit: run.audit,
   };
@@ -103,14 +104,28 @@ export function runRoutes(deps: RunDeps) {
     }
     run.plannerCalls += 1;
     const brief = buildBrief({ mandate: run.mandate, snapshot: added.current, findings, lastGuard: run.lastGuard });
-    const result = await planWithRetry(deps.provider, buildMessages(brief, run.history), added.current);
-    if (!result.ok) {
-      store.fail(run, 'planner', result.error);
-      return c.json({ findings, plan: null, state: run.state, error: run.error });
+    // Once the AI planner has failed in a run, the backup planner finishes it: no repeated timeouts.
+    let plan: Plan;
+    let plannerError: string | undefined;
+    const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), added.current) : null;
+    if (ai?.ok) {
+      plan = ai.plan;
+    } else {
+      plannerError = ai && !ai.ok ? ai.error : undefined;
+      if (run.planner === 'ai') store.audit(run, 'planner', 'backup_planner', { error: plannerError });
+      run.planner = 'backup';
+      const backup = validatePlan(backupPlan(brief), added.current);
+      if (!backup.ok) {
+        store.fail(run, 'planner', backup.error);
+        return c.json({ findings, plan: null, state: run.state, error: run.error });
+      }
+      plan = backup.plan;
     }
-    for (const a of result.plan.actions) run.history.push(`${a.tool}${'controlId' in a ? ` ${a.controlId}` : ''}: ${a.explanation}`);
-    store.audit(run, 'planner', 'planned', { actions: result.plan.actions });
-    return c.json({ findings, plan: result.plan, state: run.state });
+    for (const a of plan.actions) run.history.push(`${a.tool}${'controlId' in a ? ` ${a.controlId}` : ''}: ${a.explanation}`);
+    store.audit(run, 'planner', 'planned', { planner: run.planner, actions: plan.actions });
+    const stop = plan.actions.find((a) => a.tool === 'stop');
+    if (stop && stop.tool === 'stop') store.transition(run, 'stopped', 'planner', 'stopped', { reason: stop.reason });
+    return c.json({ findings, plan, planner: run.planner, state: run.state, ...(plannerError ? { plannerError } : {}) });
   });
 
   app.post('/:id/checkout', (c) => {

@@ -30,6 +30,8 @@ export interface Run {
   mandate: Mandate;
   journey?: Journey;
   plannerCalls: number;
+  /** 'ai' until the AI planner fails once in this run; then the labelled backup planner. */
+  planner: 'ai' | 'backup';
   /** One line per thing the agent or the human did, fed back to the planner. */
   history: string[];
   last?: { snapshot: ScreenSnapshot; bill: Bill | null; findings: Finding[] };
@@ -62,7 +64,7 @@ export class RunStore {
   ) {}
 
   create(mandate: Mandate): Run {
-    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, history: [], lastGuard: null, authzUsed: false, triedPaise: 0, audit: [], touchedAt: this.clock() };
+    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, planner: 'ai', history: [], lastGuard: null, authzUsed: false, triedPaise: 0, audit: [], touchedAt: this.clock() };
     this.audit(run, 'human', 'signed', { mandate });
     this.runs.set(run.id, run);
     return run;

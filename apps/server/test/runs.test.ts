@@ -110,11 +110,28 @@ describe('runs API', () => {
     expect(last.json.state).toBe('failed');
   });
 
-  it('fails the run with a readable reason when the planner returns garbage twice', async () => {
+  it('falls back to the labelled backup planner when the AI returns garbage twice', async () => {
     const { call } = setup(['garbage', { actions: [] }]);
     const id = await start(call);
     const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
-    expect(r.json).toMatchObject({ plan: null, state: 'failed', error: expect.stringMatching(/planner/i) });
+    expect(r.json).toMatchObject({ planner: 'backup', state: 'shopping', plannerError: expect.stringMatching(/planner/i) });
+    expect(r.json.plan.actions[0]).toMatchObject({ tool: 'set_control', controlId: 'protect' });
+    const audit = (await call('GET', `/api/runs/${id}`)).json.audit;
+    expect(audit.some((e: any) => e.event === 'backup_planner')).toBe(true);
+  });
+
+  it('labels plans from the AI planner', async () => {
+    const { call } = setup([untickPlan]);
+    const id = await start(call);
+    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
+    expect(r.json.planner).toBe('ai');
+  });
+
+  it('stops the run when the planner says stop', async () => {
+    const { call } = setup([{ actions: [{ tool: 'stop', reason: 'Not the right product.', explanation: 'Stopping.' }] }]);
+    const id = await start(call);
+    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
+    expect(r.json.state).toBe('stopped');
   });
 
   it('serves a health check', async () => {
