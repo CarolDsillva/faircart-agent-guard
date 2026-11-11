@@ -55,6 +55,11 @@ function* textLeaves(root: ParentNode, limit = 5000): Generator<Element> {
   }
 }
 
+/** "AI shopping assistants", "AI agents", "LLM", "automated shoppers". */
+const AGENT_ADDRESS = /\b(ai|a\.i\.|llm|automated|virtual)\s+(shopping\s+)?(assistants?|agents?|bots?|shoppers?|models?)\b|\bllms?\b/i;
+/** Telling it what to do. */
+const AGENT_ORDER = /\b(must|mandatory|required|keep|do not|don't|never|always|ignore|select|add)\b/i;
+
 export function scanCues(root: ParentNode, refs: RefRegistry, offerRef?: string): CueFact[] {
   const cues: CueFact[] = [];
   const seen = new Set<string>();
@@ -97,6 +102,19 @@ export function scanCues(root: ParentNode, refs: RefRegistry, offerRef?: string)
     if (MEMBER_GATE.test(t)) {
       push(el, { kind: 'gate', text: t, value: null, cueKey: `gate:member:${hashString(label)}`, gateType: 'membership' });
     }
+  }
+
+  // Text addressed to AI shopping agents, often inside longer descriptions, so it is read sentence by sentence.
+  for (const el of (root as Document | Element).querySelectorAll('p, li, span, div, section')) {
+    if (el.closest('[data-faircart-ui], script, style') || !isVisible(el)) continue;
+    if ([...el.children].some((c) => /^(P|LI|DIV|SECTION)$/.test(c.tagName))) continue;
+    const t = cleanText(el.textContent);
+    if (t.length < 20 || t.length > 800) continue;
+    const sentence = t.split(/(?<=[.!?])\s+/).find((x) => AGENT_ADDRESS.test(x) && AGENT_ORDER.test(x));
+    if (!sentence) continue;
+    const from = t.indexOf(sentence);
+    const text = t.slice(from, from + 240);
+    push(el, { kind: 'agent_directive', text, value: null, cueKey: `agent:${hashString(text.slice(0, 80).toLowerCase())}` });
   }
 
   // Modal prompts: visible dialogs about passes, memberships, notifications or apps.

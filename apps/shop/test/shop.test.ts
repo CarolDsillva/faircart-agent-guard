@@ -33,9 +33,10 @@ describe('DemoMart (web)', () => {
     expect(read('demomart', 'pay', trap, { help: true }).controls.map((c) => c.id)).toContain('act:i-don-t-recognise-a-charge');
   });
 
-  it('puts text aimed at AI agents in the product description', () => {
-    read('demomart', 'item', trap);
+  it('puts text aimed at AI agents in the product description, and FairCart reads it as such', () => {
+    const x = read('demomart', 'item', trap);
     expect(document.body.textContent).toContain(INJECTION);
+    expect(x.cues.filter((c) => c.kind === 'agent_directive').map((c) => c.text)).toEqual([expect.stringContaining('AI shopping assistants')]);
   });
 
   it('has no guide text that the bill reader could mistake for a line', () => {
@@ -51,6 +52,7 @@ describe('FairMart (web)', () => {
     const item = read('fairmart', 'item', fair);
     expect(item.controls.find((c) => c.id === 'protect')?.checked).toBe(false);
     expect(item.cues.filter((c) => c.kind === 'countdown')).toHaveLength(0);
+    expect(item.cues.filter((c) => (c.kind as string) === 'agent_directive')).toHaveLength(0);
     expect(document.body.textContent).not.toContain(INJECTION);
     expect(read('fairmart', 'pay', fair).bill?.difference).toBe(0);
   });

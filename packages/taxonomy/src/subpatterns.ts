@@ -63,6 +63,7 @@ export const SUB_PATTERNS: readonly SubPattern[] = [
 
   { id: 'countdown_reset', name: 'Countdown reset', mapsTo: ['false_urgency'], signal: 'A countdown value went up for the same offer.', origin: 'rule_level', researchRefs: ['S1'] },
   { id: 'late_mandatory_fee', name: 'Late mandatory fee', mapsTo: ['drip_pricing'], signal: 'A mandatory fee first seen at checkout although earlier stages were observed.', origin: 'rule_level', researchRefs: ['S1', 'S17'] },
+  { id: 'agent_directive', name: 'Instructions aimed at AI agents', mapsTo: ['forced_action'], signal: 'Page text tells AI shopping assistants an extra paid item is required or what to choose.', origin: 'rule_level', researchRefs: ['S1'] },
   { id: 'unconsented_paid_item', name: 'Paid item without a recorded choice', mapsTo: ['basket_sneaking'], signal: 'A paid basket item with no recorded tap.', origin: 'rule_level', researchRefs: ['S1', 'S17'] },
   { id: 'unlabelled_sponsorship', name: 'Unlabelled or faint sponsorship', mapsTo: ['disguised_advertisement'], signal: 'Ad slot with no label or a label far less prominent than the card text.', origin: 'rule_level', researchRefs: ['S1', 'S15'] },
   { id: 'repeated_prompt', name: 'Repeated prompt', mapsTo: ['nagging'], signal: 'The same prompt shown again after dismissal.', origin: 'rule_level', researchRefs: ['S1'] },

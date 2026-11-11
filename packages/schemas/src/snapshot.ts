@@ -93,6 +93,8 @@ export const CueFact = z.object({
     'gate',
     'download_prompt',
     'scareware',
+    /** Page text addressed to AI shopping agents, telling them what to do. */
+    'agent_directive',
   ]),
   text: z.string(),
   /** Parsed value: seconds remaining for countdowns, units for stock, count for social proof. */

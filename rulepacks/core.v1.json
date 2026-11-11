@@ -455,6 +455,32 @@
         "researchRefs": ["S1"],
         "limitations": ["Uncommon in mainstream marketplace checkout. Check the address bar for the real site."]
       }
+    },
+    {
+      "id": "AGENT-01",
+      "category": "forced_action",
+      "subcategory": "agent_directive",
+      "tags": ["agent_directive"],
+      "rationale": "Text on a shopping page that addresses AI agents and tells them an extra item is mandatory tries to make an agent buy something its user never asked for.",
+      "forEach": "cues",
+      "when": { "eq": [{ "var": "item.kind" }, "agent_directive"] },
+      "emit": {
+        "title": "Page text tries to instruct AI shopping agents",
+        "summary": "The page says: \"{item.text}\"",
+        "consumerImpact": "An AI agent shopping for you could follow this text and add or keep things you never asked for.",
+        "recommendedAction": "Treat it as marketing, not a rule. Buy only what you chose.",
+        "severity": "P1",
+        "confidence": 0.8,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Text on the page is addressed to AI assistants and agents.", "observed": "item.text" }
+        ],
+        "evidenceKey": "{item.cueKey}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1"],
+        "limitations": ["FairCart flags the wording; whether the item is truly required is for the store's terms to show."]
+      }
     }
   ]
 }
