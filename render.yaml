@@ -2,7 +2,7 @@ services:
   - type: web
     name: pennywise-for-paypal
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm ci && npm run build:web
     startCommand: npm start
     healthCheckPath: /healthz
