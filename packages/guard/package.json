@@ -1,0 +1,8 @@
+{
+  "name": "@faircart/guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@faircart/money": "0.1.0", "@faircart/schemas": "0.1.0", "@faircart/adapters": "0.1.0", "zod": "^4.1.0" }
+}
