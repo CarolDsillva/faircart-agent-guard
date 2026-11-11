@@ -6,6 +6,7 @@ import type { CategoryId } from './categories';
  * categories.
  */
 export type SubPatternId =
+  | 'agent_directive'
   | 'privacy_zuckering'
   | 'fake_social_proof'
   | 'misleading_scarcity'
