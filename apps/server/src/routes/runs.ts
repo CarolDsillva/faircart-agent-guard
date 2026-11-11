@@ -54,8 +54,22 @@ export function runView(run: Run) {
     orderId: run.orderId ?? null,
     capture: run.capture ?? null,
     planner: run.planner,
-    receipt: { triedPaise: run.triedPaise, paidPaise: run.authorization?.totalPaise ?? null, paidUsdCents: run.authorization?.totalUsdCents ?? null },
+    receipt: receipt(run),
     audit: run.audit,
+  };
+}
+
+/** "DemoMart tried ₹471. You paid ₹313." */
+function receipt(run: Run) {
+  const caught = [...run.caught.values()].map(({ label, paise }) => ({ label, paise }));
+  const base = run.authorization?.totalPaise ?? run.lastCheckoutPaise;
+  return {
+    triedPaise: base + caught.reduce((s, c) => s + c.paise, 0),
+    caught,
+    approved: run.mandate.amendments.flatMap((a) => a.approved.map(({ label, paise }) => ({ label, paise }))),
+    paidPaise: run.authorization?.totalPaise ?? null,
+    paidUsdCents: run.authorization?.totalUsdCents ?? null,
+    inrPerUsd: run.authorization?.rate.inrPerUsd ?? null,
   };
 }
 
@@ -94,7 +108,13 @@ export function runRoutes(deps: RunDeps) {
     run.journey = journey;
     const { findings } = evaluate({ snapshot: added.current, journey: added.earlier, taps: journey.taps }, CORE);
     run.last = { snapshot: added.current, bill: body.bill, findings };
-    if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.triedPaise = Math.max(run.triedPaise, toPaise(body.bill.displayedTotal));
+    if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.lastCheckoutPaise = toPaise(body.bill.displayedTotal);
+    for (const ctl of added.current.controls) {
+      if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, ctl.label, toPaise(ctl.paidAmount), false);
+    }
+    for (const row of body.bill?.rows ?? []) {
+      if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true);
+    }
     store.audit(run, 'sensor', 'observed', { stage: added.current.stage, url: body.url, findings: findings.map((f) => f.ruleId) });
 
     if (run.state !== 'shopping') return c.json({ findings, plan: null, state: run.state });
@@ -137,6 +157,7 @@ export function runRoutes(deps: RunDeps) {
     const result = guard({ mandate: run.mandate, snapshot: run.last.snapshot, bill: run.last.bill, findings: run.last.findings, runId: run.id, now: deps.now(), secret: deps.secret });
     if (result.verdict === 'BLOCK') {
       run.lastGuard = result.reasons;
+      for (const r of result.reasons) if (r.code === 'UNEXPLAINED_AMOUNT' && r.paise) store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', r.paise, true);
       run.history.push(`The checker blocked payment: ${result.reasons.map((r) => r.label).join('; ')}.`);
       const fixable = result.reasons.some((r) => r.fixable);
       if (fixable) store.audit(run, 'guard', 'blocked', { reasons: result.reasons });

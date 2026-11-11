@@ -65,6 +65,15 @@ describe('runs API', () => {
     const run = await call('GET', `/api/runs/${id}`);
     expect(run.json.state).toBe('authorized');
     expect(run.json.receipt.triedPaise).toBe(47100);
+    expect(run.json.receipt.caught).toEqual([
+      { label: 'Freshness protection (1 year)', paise: 4900 },
+      { label: 'Demo Pass (3 months)', paise: 9900 },
+      { label: 'Unexplained amount in the total', paise: 1000 },
+    ]);
+    expect(run.json.receipt.approved).toEqual([
+      { label: 'Handling charge', paise: 1500 },
+      { label: 'Platform fee', paise: 900 },
+    ]);
     expect(run.json.audit.some((e: any) => e.actor === 'human' && e.event === 'amended')).toBe(true);
   });
 
@@ -137,5 +146,19 @@ describe('runs API', () => {
   it('serves a health check', async () => {
     const { call } = setup([]);
     expect((await call('GET', '/healthz')).json).toEqual({ ok: true });
+  });
+});
+
+describe('receipt', () => {
+  it('counts what the store tried even when the agent removed it before the payment page', async () => {
+    const { call } = setup([untickPlan, checkoutPlan, checkoutPlan]);
+    const id = await start(call);
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap)); // protection pre-ticked: ₹49
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'basket', { ...trap, protection: false })); // pass: ₹99
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
+    await call('POST', `/api/runs/${id}/checkout`);
+    const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
+    expect(r.caught.map((c: any) => c.paise)).toEqual([4900, 9900]);
+    expect(r.triedPaise).toBe(31300 + 4900 + 9900);
   });
 });

@@ -40,8 +40,10 @@ export interface Run {
   authzUsed: boolean;
   orderId?: string;
   capture?: { id: string; status: string; amount: string };
-  /** The highest total the store showed at checkout: "DemoMart tried ₹471". */
-  triedPaise: number;
+  /** The last total the store showed at checkout. */
+  lastCheckoutPaise: number;
+  /** Paid extras and unexplained amounts the store put in front of the agent, keyed so each counts once. */
+  caught: Map<string, { label: string; paise: number; fromBill: boolean }>;
   error?: string;
   audit: AuditEntry[];
   touchedAt: number;
@@ -64,7 +66,7 @@ export class RunStore {
   ) {}
 
   create(mandate: Mandate): Run {
-    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, planner: 'ai', history: [], lastGuard: null, authzUsed: false, triedPaise: 0, audit: [], touchedAt: this.clock() };
+    const run: Run = { id: crypto.randomUUID(), state: 'shopping', mandate, plannerCalls: 0, planner: 'ai', history: [], lastGuard: null, authzUsed: false, lastCheckoutPaise: 0, caught: new Map(), audit: [], touchedAt: this.clock() };
     this.audit(run, 'human', 'signed', { mandate });
     this.runs.set(run.id, run);
     return run;
@@ -101,6 +103,12 @@ export class RunStore {
     if (run.state === 'failed') return;
     run.error = error;
     if (NEXT[run.state].includes('failed')) this.transition(run, 'failed', actor, 'failed', { error });
+  }
+
+  /** Record something the store tried to charge for. Bill labels win over control labels. */
+  noteCaught(run: Run, key: string, label: string, paise: number, fromBill: boolean) {
+    const prev = run.caught.get(key);
+    if (!prev || (fromBill && !prev.fromBill)) run.caught.set(key, { label, paise, fromBill });
   }
 
   audit(run: Run, actor: Actor, event: string, data?: unknown) {
