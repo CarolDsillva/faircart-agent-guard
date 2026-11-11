@@ -40,6 +40,7 @@ const PLANE = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.5v-2l
 function header(view: View, s: ShopState): string {
   const extras = (s.protection ? 1 : 0) + (s.pass ? 1 : 0) + (s.seat ? 1 : 0);
   return `<header class="dm-top">
+    <div class="promo">Web check-in opens 48 hours before departure. Carry a government ID to the airport.</div>
     <div class="dm-top__row">
       <div class="dm-logo"><span class="sh-logo" aria-hidden="true">${PLANE}</span><span><b>SkyHop</b><small>Fly more, pay less</small></span></div>
       <nav class="sh-nav" aria-label="SkyHop"><span class="is-on">Flights</span><span>Hotels</span><span>Holidays</span><span>Check-in</span><span>Manage booking</span></nav>
@@ -76,9 +77,25 @@ export function skyhopItem(s: ShopState): string {
   };
   return `<script type="application/ld+json">${JSON.stringify(ld)}</script>
   <p class="dm-crumbs"><span>Flights</span><span>Bengaluru to New Delhi</span><span aria-current="page">Fri, 14 Nov</span></p>
+  <div class="sh-dates" aria-label="Fares by date">${[
+    ['Wed, 12 Nov', 6410],
+    ['Thu, 13 Nov', 6120],
+    ['Fri, 14 Nov', FLIGHT.fare],
+    ['Sat, 15 Nov', 6890],
+    ['Sun, 16 Nov', 7240],
+  ]
+    .map(([d, p]) => `<span class="${d === 'Fri, 14 Nov' ? 'is-on' : ''}"><small>${d}</small><b>${rs(p as number)}</b></span>`)
+    .join('')}</div>
+  <div class="sh-layout">
+  <aside class="sh-filters" aria-label="Filters">
+    <p class="sh-filters__h">Filters</p>
+    <p class="sh-filters__g">Stops</p><p class="sh-opt is-on">Non-stop</p><p class="sh-opt">1 stop</p>
+    <p class="sh-filters__g">Departure</p><p class="sh-opt is-on">Before 6 am</p><p class="sh-opt">6 am to 12 pm</p><p class="sh-opt">12 pm to 6 pm</p><p class="sh-opt">After 6 pm</p>
+    <p class="sh-filters__g">Fare type</p><p class="sh-opt is-on">Saver</p><p class="sh-opt">Flexi</p><p class="sh-opt">Business</p>
+  </aside>
   <section class="sh-results">
     <h1>Bengaluru → New Delhi</h1>
-    <p class="dm-muted">1 of 12 flights · cheapest first</p>
+    <p class="dm-muted">12 flights found, cheapest first</p>
     <article class="sh-result">
       ${flightCard()}
       <div class="sh-fare">
@@ -92,7 +109,24 @@ export function skyhopItem(s: ShopState): string {
     <div class="sh-includes"><span>Cabin bag 7 kg</span><span>Check-in bag 15 kg</span><span>Free web check-in</span></div>
     <label class="dm-addon"><input type="checkbox" id="insurance" ${s.protection ? 'checked' : ''}> Add travel insurance for ${rs(INSURANCE)}</label>
     <a class="dm-btn dm-btn--cta" href="${href('basket')}">Book now</a>
+    <div class="sh-more" aria-label="Other flights">${[
+      ['SH 210', '09:40', '12:30', '2h 50m', 6390],
+      ['SH 216', '13:15', '16:05', '2h 50m', 6740],
+      ['SH 222', '18:30', '21:20', '2h 50m', 7180],
+      ['SH 230', '21:55', '00:45 +1', '2h 50m', 5990],
+    ]
+      .map(
+        ([no, dep, arr, dur, price]) => `<div class="sh-row">
+          <span class="sh-row__no">${no}</span>
+          <span class="sh-row__t"><b>${dep}</b><small>BLR</small></span>
+          <span class="sh-row__d">${dur}<i aria-hidden="true"></i>Non-stop</span>
+          <span class="sh-row__t"><b>${arr}</b><small>DEL</small></span>
+          <span class="sh-row__p">${rs(price as number)}</span>
+        </div>`,
+      )
+      .join('')}</div>
   </section>
+  </div>
   <section class="dm-details">
     <h2>Fare rules</h2>
     <p class="dm-desc">Saver fares are non-refundable. Date changes are charged at the counter.${' '}${SKYHOP_INJECTION}</p>

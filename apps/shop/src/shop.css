@@ -800,3 +800,363 @@ a {
     margin: 0 16px 10px;
   }
 }
+
+/* ---- Store realism: promo strip, rails, reviews, offers, footer ---- */
+.promo {
+  background: var(--brand);
+  color: #fff;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  letter-spacing: 0.01em;
+}
+.dm-badge {
+  display: inline-block;
+  margin-left: 6px;
+  background: #fff4d6;
+  color: #8a5a00;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  vertical-align: 1px;
+}
+.dm-rating__n {
+  color: var(--muted);
+  margin-left: 4px;
+}
+.offers {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.offers h3 {
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+.offers ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13.5px;
+  color: #3d4440;
+}
+.offers b {
+  display: inline-block;
+  min-width: 82px;
+  color: var(--ink);
+}
+.rail {
+  margin-top: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.rail h2,
+.reviews h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+.rail__row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.pcard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+}
+.pcard__img {
+  background: #f7f3ea;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 8px;
+}
+.cat-art {
+  width: 70%;
+  filter: drop-shadow(0 8px 10px rgba(60, 40, 10, 0.15));
+}
+.pcard__brand {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pcard__name {
+  font-weight: 600;
+  line-height: 1.3;
+  min-height: 34px;
+}
+.pcard__size {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pcard__price {
+  margin-top: 4px;
+}
+.pcard__price s {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pcard__rating span {
+  display: inline-block;
+  background: var(--brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.reviews {
+  margin-top: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 8px 32px;
+}
+.reviews__head {
+  grid-column: 1;
+}
+.reviews__score b {
+  font-size: 34px;
+  font-weight: 800;
+  margin-right: 8px;
+}
+.reviews__score .stars {
+  color: var(--star);
+  font-size: 18px;
+}
+.reviews__score small {
+  display: block;
+  color: var(--muted);
+}
+.reviews__bars {
+  grid-column: 1;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.reviews__bars div {
+  display: grid;
+  grid-template-columns: 28px 1fr 34px;
+  gap: 8px;
+  align-items: center;
+}
+.reviews__bars i {
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.reviews__bars i b {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+.reviews__list {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.reviews__list li + li {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.review__stars {
+  color: var(--star);
+}
+.review__body {
+  color: #3d4440;
+  font-size: 14px;
+  margin-top: 2px;
+}
+.review__who {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+.dm-foot__cols div {
+  min-width: 140px;
+}
+.badge-store {
+  display: inline-block;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 3px 10px;
+  font-weight: 600;
+  font-size: 12.5px;
+  width: fit-content;
+  margin-top: 2px;
+}
+.dm-foot__pay {
+  max-width: 1080px;
+  margin: 18px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12.5px;
+}
+.dm-foot__pay i {
+  font-style: normal;
+  border: 1px solid var(--line);
+  background: #f7f8f7;
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* SkyHop: dates, filters, other flights */
+.sh-dates {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.sh-dates span {
+  display: grid;
+  text-align: center;
+  padding: 8px 4px;
+  border-right: 1px solid var(--line);
+  line-height: 1.3;
+}
+.sh-dates span:last-child {
+  border-right: 0;
+}
+.sh-dates small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sh-dates b {
+  font-size: 14.5px;
+}
+.sh-dates .is-on {
+  background: var(--brand-soft);
+  box-shadow: inset 0 -3px 0 var(--brand);
+}
+.sh-dates .is-on b {
+  color: var(--brand);
+}
+.sh-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.sh-filters {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+}
+.sh-filters__h {
+  font-weight: 800;
+  font-size: 15px;
+}
+.sh-filters__g {
+  margin-top: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sh-opt {
+  color: var(--muted);
+  padding: 3px 0 3px 22px;
+  position: relative;
+}
+.sh-opt::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #b8c2cf;
+  border-radius: 4px;
+}
+.sh-opt.is-on {
+  color: var(--ink);
+}
+.sh-opt.is-on::before {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.sh-more {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.sh-row {
+  display: grid;
+  grid-template-columns: 70px 90px 1fr 90px 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.sh-row__no {
+  color: var(--muted);
+  font-weight: 600;
+}
+.sh-row__t b {
+  display: block;
+  font-size: 16px;
+}
+.sh-row__t small {
+  color: var(--muted);
+}
+.sh-row__d {
+  display: grid;
+  justify-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.sh-row__d i {
+  width: 70%;
+  height: 1px;
+  background: var(--line);
+  margin: 3px 0;
+}
+.sh-row__p {
+  text-align: right;
+  font-weight: 800;
+  font-size: 15px;
+}
+@media (max-width: 900px) {
+  .rail__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .reviews,
+  .sh-layout {
+    grid-template-columns: 1fr;
+  }
+  .reviews__list {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .sh-filters {
+    display: none;
+  }
+}

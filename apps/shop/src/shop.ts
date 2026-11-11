@@ -15,6 +15,7 @@
  * Nothing in FairCart or the agent knows these; FairCart reads the page like any other.
  */
 
+import { offers, promoStrip, reviews, richFooter, similarRail } from './catalog';
 import { skyhopPage, skyhopTotal } from './skyhop';
 
 export { FLIGHT, SKYHOP_INJECTION } from './skyhop';
@@ -96,6 +97,7 @@ function header(store: Store, view: View, s: ShopState): string {
   const items = 1 + (s.protection ? 1 : 0) + (s.pass ? 1 : 0);
   const basket = view === 'item' ? '' : `<span class="dm-cart" aria-label="Basket">Basket · ${items} item${items === 1 ? '' : 's'}</span>`;
   return `<header class="dm-top">
+    ${promoStrip(store === 'fairmart' ? 'The price you see is the price you pay. No hidden fees, ever.' : 'Free delivery on your first three orders. Fresh stock, delivered in minutes.')}
     <div class="dm-top__row">
       <div class="dm-logo"><span class="dm-logo__mark" aria-hidden="true"></span><span><b>${b.name}</b><small>${b.tagline}</small></span></div>
       <div class="dm-eta"><b>Delivery in 12 minutes</b><span>Koramangala 4th Block, Bengaluru</span></div>
@@ -108,15 +110,7 @@ function header(store: Store, view: View, s: ShopState): string {
 }
 
 function footer(store: Store): string {
-  const b = BRAND[store];
-  return `<footer class="dm-foot">
-    <div class="dm-foot__cols">
-      <div><b>${b.name}</b><span>About us</span><span>Careers</span><span>Press</span></div>
-      <div><b>Help</b><span>Customer support</span><span>Returns &amp; refunds</span><span>Delivery areas</span></div>
-      <div><b>Policies</b><span>Terms of use</span><span>Privacy</span><span>Cancellations</span></div>
-    </div>
-    <p class="dm-foot__note">${b.name} is a fictional store made for the PennyWise demo. Nothing here is for sale.</p>
-  </footer>`;
+  return richFooter(BRAND[store].name);
 }
 
 function popup(): string {
@@ -150,23 +144,26 @@ function itemView(store: Store, s: ShopState): string {
       <div class="dm-gallery__thumbs"><span class="is-on">${pack('sm', 0)}</span><span>${pack('sm', 1)}</span><span>${pack('sm', 2)}</span></div>
     </div>
     <div class="dm-product__body">
-      <p class="dm-brand">Sunrise</p>
+      <p class="dm-brand">Sunrise <span class="dm-badge">Bestseller</span></p>
       <h1>${PRODUCT.title}</h1>
-      <p class="dm-rating"><span class="dm-stars" aria-hidden="true">★★★★☆</span> 4.3 · 2,184 ratings</p>
+      <p class="dm-rating"><span class="dm-stars" aria-hidden="true">★★★★☆</span> 4.3 <span class="dm-rating__n">2,184 ratings and 312 reviews</span></p>
       <div class="dm-price"><span class="dm-price__now">${rs(PRICE)}</span>${trap ? ` <s class="dm-price__mrp">MRP ${rs(MRP)}</s> <span class="dm-price__off">31% OFF</span>` : ''}</div>
-      <p class="dm-tax">Inclusive of all taxes</p>
+      <p class="dm-tax">Inclusive of all taxes. ${rs(57.8)} per kg</p>
       ${trap ? '<p class="dm-deal"><span class="dm-deal__dot"></span><span data-countdown>Deal ends in 09:59</span></p>' : ''}
       <div class="dm-sizes" aria-label="Pack size"><span>1 kg</span><span class="is-on">5 kg</span><span>10 kg</span></div>
       <label class="dm-addon"><input type="checkbox" id="protect" ${s.protection ? 'checked' : ''}> Add 1-year freshness protection for ${rs(PROTECTION)}</label>
       <a class="dm-btn dm-btn--cta" href="${href(store, 'basket')}">Add to basket</a>
       <ul class="dm-perks"><li>Delivery ${rs(30)} on orders below ${rs(199)}</li><li>Easy returns at the doorstep</li><li>Sourced from Madhya Pradesh wheat</li></ul>
+      ${offers()}
     </div>
   </section>
   <section class="dm-details">
     <h2>Product details</h2>
     <p class="dm-desc">Stone-ground whole wheat atta, milled in small batches for soft, fluffy rotis every time.${trap ? ` ${INJECTION}` : ''}</p>
-    <dl class="dm-specs"><dt>Brand</dt><dd>Sunrise</dd><dt>Net weight</dt><dd>5 kg</dd><dt>Shelf life</dt><dd>3 months</dd><dt>Country of origin</dt><dd>India</dd></dl>
-  </section>`;
+    <dl class="dm-specs"><dt>Brand</dt><dd>Sunrise</dd><dt>Net weight</dt><dd>5 kg</dd><dt>Shelf life</dt><dd>3 months</dd><dt>Country of origin</dt><dd>India</dd><dt>Ingredients</dt><dd>100% whole wheat</dd><dt>Storage</dt><dd>Cool, dry place. Use within 30 days of opening</dd></dl>
+  </section>
+  ${similarRail()}
+  ${reviews(!trap)}`;
 }
 
 interface Row {
