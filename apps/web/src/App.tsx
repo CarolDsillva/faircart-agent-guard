@@ -88,6 +88,25 @@ export function App() {
           ) : (
             <>
               <Timeline entries={run.entries} running={run.phase === 'running'} />
+              {run.phase === 'linking' && (
+                <section className="card card--link">
+                  <h2>Link PayPal for this mandate</h2>
+                  <p className="muted">
+                    {config?.paypalMode === 'sandbox'
+                      ? "PayPal opens in a small window. Log in with the sandbox buyer and agree to save PayPal for this merchant. You won't be charged now."
+                      : 'PayPal keys are not configured, so linking is simulated. Every other step is real.'}
+                  </p>
+                  {run.walletUrl ? (
+                    <a className="btn btn--paypal" href={run.walletUrl} target="_blank" rel="opener">
+                      Open PayPal to link it
+                    </a>
+                  ) : (
+                    <button className="btn btn--paypal" onClick={() => void run.linkWallet(config?.paypalMode !== 'sandbox')}>
+                      {config?.paypalMode === 'sandbox' ? 'Link PayPal' : 'Link PayPal (simulated)'}
+                    </button>
+                  )}
+                </section>
+              )}
               {run.findings.length > 0 && <Findings findings={run.findings} />}
               {run.phase === 'awaiting' && <AskHuman reasons={run.reasons} onApprove={run.approve} onStop={run.stop} />}
               {(run.phase === 'authorized' || run.phase === 'paying') && run.authorization && config && (
@@ -130,12 +149,13 @@ export function App() {
 function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: MandateInput) => void }) {
   const [max, setMax] = useState(350);
   const [fees, setFees] = useState<string[]>(['delivery']);
+  const [autopay, setAutopay] = useState(true);
   return (
     <form
       className="card mandate"
       onSubmit={(e) => {
         e.preventDefault();
-        onSign({ maxTotalRupees: max, allowedFees: fees });
+        onSign({ maxTotalRupees: max, allowedFees: fees, autopay });
       }}
     >
       <h2>Send an agent shopping</h2>
@@ -166,6 +186,13 @@ function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: Man
         </div>
       </fieldset>
       <p className="small muted">No add-ons, passes or subscriptions, ever. The agent can ask you about anything else.</p>
+      <label className="autopay">
+        <input type="checkbox" checked={autopay} onChange={(e) => setAutopay(e.target.checked)} />
+        <span>
+          <b>Let the agent pay on its own, inside these rules</b>
+          <small>You link PayPal once. The agent pays without a pop-up only when FairCart signs a cart that matches. Anything outside these rules still comes back to you.</small>
+        </span>
+      </label>
       <button className="btn btn--primary" type="submit">
         Sign and start shopping
       </button>
@@ -333,6 +360,24 @@ function ReceiptCard({ view, storeName, simulated }: { view: RunView; storeName:
       <p className="receipt__usd">
         {formatUsd(r.paidUsdCents ?? 0)} via PayPal at ₹{r.inrPerUsd} = US$1
       </p>
+      {r.savedPaise !== null && r.savedPaise > 0 && (
+        <p className="receipt__saved">
+          You saved {formatInr(r.savedPaise)} ({Math.round((r.savedPaise / r.triedPaise) * 100)}%)
+        </p>
+      )}
+      <p className="receipt__head">{r.paidBy === 'agent' ? 'Paid by your agent with your linked PayPal. No pop-up.' : 'Approved by you in PayPal.'}</p>
+      <ul>
+        <li>
+          <span>Intent mandate</span>
+          <span>{r.intentMandateId}</span>
+        </li>
+        {r.cartMandateId && (
+          <li>
+            <span>Cart mandate</span>
+            <span>{r.cartMandateId}</span>
+          </li>
+        )}
+      </ul>
       <p className="receipt__meta">
         Order {view.orderId}
         <br />

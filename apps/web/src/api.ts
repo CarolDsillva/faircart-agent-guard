@@ -34,6 +34,12 @@ export type GuardResult = { verdict: 'PASS'; authorization: Authorization; state
 
 export interface Receipt {
   triedPaise: number;
+  savedPaise: number | null;
+  intentMandateId: string;
+  cartMandateId: string | null;
+  paidBy: 'buyer' | 'agent' | null;
+  autopay: boolean;
+  walletLinked: boolean;
   caught: { label: string; paise: number }[];
   approved: { label: string; paise: number }[];
   paidPaise: number | null;
@@ -61,7 +67,7 @@ export interface Config {
 
 export const api = {
   config: () => call<Config>('GET', '/api/config'),
-  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees'>) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate }),
+  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees' | 'autopay'>) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate }),
   observe: (runId: string, o: Observation, taps: TapEvent[], plan = true) =>
     call<ObserveResult>('POST', `/api/runs/${runId}/observe`, { seq: o.seq, pageId: o.pageId, url: o.url, snapshot: o.snapshot, bill: o.bill, taps, plan }),
   checkout: (runId: string) => call<GuardResult>('POST', `/api/runs/${runId}/checkout`),
@@ -70,6 +76,9 @@ export const api = {
   run: (runId: string) => call<RunView>('GET', `/api/runs/${runId}`),
   merchantCheckout: (authorization: Authorization) => call<{ orderId: string; state: RunState }>('POST', '/shop/api/checkout', { authorization }),
   capture: (runId: string, orderId: string) => call<RunView>('POST', '/shop/api/capture', { runId, orderId }),
+  walletSetup: (runId: string, returnUrl: string) => call<{ setupTokenId: string; approveUrl: string }>('POST', `/api/runs/${runId}/wallet/setup`, { returnUrl }),
+  walletConfirm: (runId: string, setupTokenId: string) => call<{ linked: true }>('POST', `/api/runs/${runId}/wallet/confirm`, { setupTokenId }),
+  agentPay: (authorization: Authorization) => call<RunView>('POST', '/shop/api/agent-pay', { authorization }),
 };
 
 export type { Action };

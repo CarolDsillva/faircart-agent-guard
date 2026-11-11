@@ -653,3 +653,51 @@ select:disabled {
     display: none;
   }
 }
+
+/* Autopay option and wallet link */
+.autopay {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid #c9d3ee;
+  background: #f4f6fd;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.autopay input {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.autopay b {
+  display: block;
+  font-size: 14.5px;
+}
+.autopay small {
+  display: block;
+  color: var(--slate);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+.card--link {
+  background: #f4f6fd;
+  display: grid;
+  gap: 12px;
+}
+.receipt__saved {
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--pass);
+  border: 1px dashed var(--pass);
+  padding: 6px;
+}
+a.btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}

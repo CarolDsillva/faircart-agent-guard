@@ -17,6 +17,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         shop: fileURLToPath(new URL('./shop.html', import.meta.url)),
+        wallet: fileURLToPath(new URL('./wallet-return.html', import.meta.url)),
       },
     },
   },

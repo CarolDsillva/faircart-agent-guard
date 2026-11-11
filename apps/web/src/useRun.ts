@@ -7,7 +7,7 @@ import { runAction } from './driver';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
 export type Store = 'demomart' | 'fairmart';
-export type Phase = 'idle' | 'running' | 'awaiting' | 'authorized' | 'paying' | 'paid' | 'stopped' | 'failed';
+export type Phase = 'idle' | 'linking' | 'running' | 'awaiting' | 'authorized' | 'paying' | 'paid' | 'stopped' | 'failed';
 
 export interface Entry {
   id: number;
@@ -21,6 +21,33 @@ export interface Entry {
 export interface MandateInput {
   maxTotalRupees: number;
   allowedFees: string[];
+  /** Let the agent pay on its own with a linked PayPal, inside the signed rules. */
+  autopay: boolean;
+}
+
+export const intentMandateId = (runId: string, version = 1) => `IM-${runId.slice(0, 6).toUpperCase()}-v${version}`;
+export const cartMandateId = (authorizationId: string) => `CM-${authorizationId.slice(0, 6).toUpperCase()}`;
+
+/** Wait for the wallet pop-up to report back (or be closed). */
+function walletReply(popup: Window | null): Promise<{ approvalTokenId: string | null; cancelled: boolean }> {
+  return new Promise((resolve, reject) => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== location.origin || e.data?.type !== 'faircart-wallet') return;
+      cleanup();
+      resolve({ approvalTokenId: e.data.approvalTokenId ?? null, cancelled: !!e.data.cancelled });
+    };
+    const closed = window.setInterval(() => {
+      if (popup?.closed) {
+        cleanup();
+        reject(new Error('The PayPal window was closed before linking finished.'));
+      }
+    }, 600);
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage);
+      window.clearInterval(closed);
+    };
+    window.addEventListener('message', onMessage);
+  });
 }
 
 export const PRODUCT = { sku: 'DEMO-ATTA-5KG', title: 'Sunrise Chakki Atta 5 kg', price: 289 };
@@ -57,6 +84,10 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const [view, setView] = useState<RunView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [store, setStore] = useState<Store>('demomart');
+  const [autopay, setAutopay] = useState(false);
+  const [walletLinked, setWalletLinked] = useState(false);
+  /** Set when the browser blocked the PayPal pop-up: the UI offers a plain link instead. */
+  const [walletUrl, setWalletUrl] = useState<string | null>(null);
 
   const seq = useRef(0);
   const pageCount = useRef(0);
@@ -139,7 +170,11 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
               if (g.verdict === 'PASS') {
                 setReasons([]);
                 setAuthorization(g.authorization);
-                push({ kind: 'guard', title: 'Checker passed. Every rupee matches your instructions.', tone: 'pass' });
+                push({ kind: 'guard', title: `Checker passed and signed cart mandate ${cartMandateId(g.authorization.id)}.`, detail: 'Every rupee matches your intent mandate.', tone: 'pass' });
+                if (autopayRef.current) {
+                  await payAsAgent(id, g.authorization);
+                  return;
+                }
                 setPhase('authorized');
                 return;
               }
@@ -180,6 +215,27 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     [addFindings, fail, observe, patchLast, push, waitForNavigation],
   );
 
+  const autopayRef = useRef(false);
+
+  /** Human-not-present payment: DemoMart holds the money, FairCart checks the order, then it is captured. */
+  const payAsAgent = async (id: string, authz: Authorization) => {
+    setPhase('paying');
+    push({ kind: 'pay', title: 'Your agent is paying with your linked PayPal. No pop-up: the signed mandates allow it.' });
+    const v = await api.agentPay(authz);
+    setView(v);
+    push({ kind: 'pay', title: `PayPal held, FairCart checked the order line by line, then captured US$${v.capture?.amount}.`, detail: `Order ${v.orderId} · Capture ${v.capture?.id}`, tone: 'pass' });
+    setPhase('paid');
+    const gen = generation.current;
+    for (let i = 0; i < 10; i++) {
+      await sleep(3000);
+      if (gen !== generation.current) return;
+      const fresh = await api.run(id).catch(() => null);
+      if (!fresh) return;
+      setView(fresh);
+      if (fresh.state === 'settled') return;
+    }
+  };
+
   const reset = useCallback((s: Store) => {
     generation.current += 1;
     setStore(s);
@@ -192,6 +248,10 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setPlanner(null);
     setView(null);
     setError(null);
+    setAutopay(false);
+    setWalletLinked(false);
+    setWalletUrl(null);
+    autopayRef.current = false;
     taps.current = [];
     if (frame.current) frame.current.src = `/shop.html?view=item&reset=1${s === 'fairmart' ? '&store=fairmart' : ''}`;
   }, [frame]);
@@ -204,15 +264,56 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           want: { sku: PRODUCT.sku, title: PRODUCT.title, maxQuantity: 1 },
           maxTotalPaise: Math.round(m.maxTotalRupees * 100),
           allowedFees: m.allowedFees as never,
+          autopay: m.autopay,
         });
         setRunId(id);
-        push({ kind: 'human', title: 'You signed your instructions.', detail: `${PRODUCT.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}` });
+        setAutopay(m.autopay);
+        autopayRef.current = m.autopay;
+        push({
+          kind: 'human',
+          title: `You signed intent mandate ${intentMandateId(id)}.`,
+          detail: `${PRODUCT.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
+        });
+        if (m.autopay) {
+          setPhase('linking');
+          return;
+        }
         await drive(id);
       } catch (e) {
         fail(e);
       }
     },
     [drive, fail, push],
+  );
+
+  /**
+   * Link PayPal once for this mandate. In sandbox, PayPal's approval page opens in a pop-up (from the click,
+   * so it isn't blocked); if the browser blocks it anyway, the UI shows a link to open it. Simulated mode
+   * needs no PayPal page at all.
+   */
+  const linkWallet = useCallback(
+    async (simulated: boolean) => {
+      if (!runId) return;
+      const popup = simulated ? null : window.open('', 'faircart-wallet', 'width=480,height=720');
+      try {
+        const { setupTokenId, approveUrl } = await api.walletSetup(runId, `${location.origin}/wallet-return.html`);
+        if (!simulated) {
+          if (popup) popup.location.href = approveUrl;
+          else setWalletUrl(approveUrl);
+          const reply = await walletReply(popup);
+          if (reply.cancelled) throw new Error('PayPal was not linked. Start a new run to retry, or untick autopay.');
+        }
+        setWalletUrl(null);
+        await api.walletConfirm(runId, setupTokenId);
+        setWalletLinked(true);
+        push({ kind: 'human', title: `You linked PayPal for this mandate${simulated ? ' (simulated)' : ''}.`, detail: 'The agent can pay with it only inside your signed rules. You were not charged.' });
+        await drive(runId);
+      } catch (e) {
+        popup?.close();
+        fail(e);
+      }
+    },
+    [drive, fail, push, runId],
   );
 
   const approve = useCallback(
@@ -282,5 +383,5 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   /** The buyer closed PayPal without approving: back to "Ready to pay". */
   const payCancelled = useCallback(() => setPhase('authorized'), []);
 
-  return { phase, runId, entries, findings, reasons, authorization, planner, view, error, store, onFrameLoad, reset, start, approve, stop, createOrder, captured, payFailed, payCancelled };
+  return { autopay, walletLinked, walletUrl, linkWallet, phase, runId, entries, findings, reasons, authorization, planner, view, error, store, onFrameLoad, reset, start, approve, stop, createOrder, captured, payFailed, payCancelled };
 }

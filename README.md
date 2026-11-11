@@ -2,11 +2,21 @@
 
 **AI agents are starting to shop for us. Stores are built to trick shoppers, and an agent is easier to trick than a person.** It won't notice a protection plan that's already ticked, a fee that only appears at payment, ₹10 in the total that no line explains, or text on the page written to manipulate it.
 
-FairCart Agent Guard is the safety layer that decides when a PayPal-powered shopping agent may pay.
+FairCart Agent Guard is a **mandate guard for agent payments**: the layer that decides when an AI agent may pay with your PayPal, and lets it pay **on its own** only when the purchase matches what you signed.
 
 > **The AI proposes. FairCart sees. Code decides. PayPal moves only the money you approved.**
 
-In the demo, an AI agent buys 5 kg of atta from DemoMart, a practice store full of deliberate dark patterns. DemoMart tries to charge **₹471** for a **₹289** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the ₹10 nobody explained. It asks you about the two fees it can't remove. PayPal then captures **₹313**: every line itemised, and every rupee either in your instructions or approved by you by name.
+In the demo, you sign an **intent mandate** ("5 kg atta, at most ₹350, delivery fees only") and link PayPal once. An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **₹471** for a **₹289** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the ₹10 nobody explained. It asks you about the two fees it can't remove. When the bill matches, FairCart signs a **cart mandate** and the agent pays by itself, with no pop-up. PayPal holds **₹313**, FairCart checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried ₹471. You paid ₹313. You saved ₹158.*
+
+### Why this should exist inside PayPal
+
+Agentic commerce needs a trusted party that knows what the user agreed to and sees what the merchant is charging. That is the wallet. FairCart shows what a wallet-side guard does:
+- It turns the user's words into a signed **intent mandate**.
+- It reads the checkout the agent sees.
+- It signs a **cart mandate** only for a matching cart.
+- It releases human-not-present payment only against that cart mandate.
+
+The vocabulary follows the Agent Payments Protocol (AP2), which PayPal supports: intent mandate, cart mandate, human-present and human-not-present purchases.
 
 Built for the PayPal AI Hackathon (Devpost). MIT licensed.
 
@@ -18,7 +28,8 @@ Built for the PayPal AI Hackathon (Devpost). MIT licensed.
 2. Sign your instructions: the product, the most you'll spend, and the fees you accept.
 3. Watch the agent shop on the left while the timeline on the right explains each step.
 4. When the agent asks, approve the fees by name, or stop.
-5. Pay with PayPal (sandbox). Sandbox buyer login: _add the sandbox personal account email here; share the password with judges privately_.
+5. With **"Let the agent pay on its own"** ticked (the default), you link PayPal once when you sign. The agent then pays by itself after the checker signs the cart mandate. Untick it to approve the payment yourself in PayPal's pop-up instead.
+6. Sandbox buyer login for linking PayPal: _add the sandbox personal account email here; share the password with judges privately_.
 
 FairMart is the control: same product, no tricks. The checker passes it first time, which shows nothing about DemoMart is hard-coded.
 
@@ -57,6 +68,7 @@ FairMart is the control: same product, no tricks. The checker passes it first ti
 ### PayPal
 
 - **DemoMart is the merchant of record.** FairCart never receives money.
+- **Agent wallet (human-not-present):** when you sign with autopay, you link PayPal once through **Vault v3** (setup token → your approval → payment token). After the checker signs the cart mandate, DemoMart creates the order with `payment_source.paypal.vault_id` and **`intent: AUTHORIZE`**, so PayPal only *holds* the money. FairCart reads the order back and compares it with the cart mandate. Only then is the authorization captured; on any mismatch the hold is **voided**. No pop-up, and no way for the agent to pay outside the mandates.
 - The checker's PASS produces an **HMAC-signed, single-use authorization** (30 minutes to create the order). DemoMart's agent-checkout endpoint verifies it and creates an **Orders v2** order with every line as an item (`PayPal-Request-Id` = authorization id, so retries are idempotent).
 - **FairCart then reads the PayPal order back** and compares every item, amount and the currency with the authorization before the buyer can approve. A mismatch stops the run.
 - After the buyer approves (JS SDK buttons), DemoMart captures, the captured amount is checked again, and a **verified `PAYMENT.CAPTURE.COMPLETED` webhook** marks the run settled.
@@ -107,6 +119,7 @@ Production (what Render runs): `npm run build:web` then `npm start`. One Node se
 
 ## Honest limits
 
+- The agent wallet's payment token lives in server memory for the run (30 minutes). A real wallet would keep it with PayPal and the customer.
 - The server trusts the browser's **reading of the page**, just as a careful human trusts what they see. It does not trust the browser's findings, verdicts, amounts or instructions: it re-runs the rule engine, re-adds the bill, owns your instructions, and checks the PayPal order itself.
 - In this demo, FairCart reads the PayPal order with the same sandbox app the store uses, standing in for the order details PayPal shows the payer.
 - Runs live in server memory for 30 minutes. A restart ends them, and the console offers a new run.

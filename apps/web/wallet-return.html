@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PayPal linked · FairCart Agent Wallet</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 system-ui, sans-serif; color: #141b2b; background: #eef1f4; }
+      main { background: #fff; padding: 28px 32px; border-radius: 14px; max-width: 360px; text-align: center; box-shadow: 0 10px 30px -18px rgba(20,27,43,.45); }
+      h1 { font-size: 19px; margin: 0 0 6px; }
+      p { margin: 0; color: #5a6478; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="title">Linking your PayPal…</h1>
+      <p id="text">You can close this window.</p>
+    </main>
+    <script type="module">
+      // PayPal sends the buyer back here after they approve (or cancel) saving PayPal for the agent wallet.
+      const q = new URLSearchParams(location.search);
+      const cancelled = q.has('cancel');
+      const approvalTokenId = q.get('approval_token_id') ?? q.get('token');
+      const simulated = q.has('simulated');
+      document.getElementById('title').textContent = cancelled ? 'PayPal not linked' : simulated ? 'PayPal linked (simulated)' : 'PayPal linked';
+      document.getElementById('text').textContent = cancelled ? 'Nothing was saved. You can close this window.' : 'Your agent can now pay inside your signed rules. Closing…';
+      window.opener?.postMessage({ type: 'faircart-wallet', approvalTokenId, cancelled }, location.origin);
+      setTimeout(() => window.close(), 1200);
+    </script>
+  </body>
+</html>
