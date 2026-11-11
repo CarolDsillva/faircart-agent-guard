@@ -60,6 +60,11 @@ export function runView(run: Run) {
   };
 }
 
+/** "Add 1-year freshness protection for ₹49" → "1-year freshness protection". */
+function addOnName(label: string): string {
+  return label.replace(/^\s*(add|include|get)\s+/i, '').replace(/\s+(for|at|@)\s+₹\s?[\d,.]+\s*$/i, '').trim() || label;
+}
+
 /** "DemoMart tried ₹471. You paid ₹313." */
 function receipt(run: Run) {
   const caught = [...run.caught.values()].map(({ label, paise }) => ({ label, paise }));
@@ -112,7 +117,7 @@ export function runRoutes(deps: RunDeps) {
     run.last = { snapshot: snap, bill: body.bill, findings };
     if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.lastCheckoutPaise = toPaise(body.bill.displayedTotal);
     for (const ctl of snap.controls) {
-      if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, ctl.label, toPaise(ctl.paidAmount), false);
+      if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, addOnName(ctl.label), toPaise(ctl.paidAmount), false);
     }
     for (const row of body.bill?.rows ?? []) {
       if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true);

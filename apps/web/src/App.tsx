@@ -80,7 +80,7 @@ export function App() {
                   <PayPalPay config={config} createOrder={run.createOrder} onCaptured={run.captured} onError={run.payFailed} />
                 </section>
               )}
-              {run.phase === 'paid' && run.view && <ReceiptCard view={run.view} storeName={storeName} />}
+              {run.phase === 'paid' && run.view && <ReceiptCard view={run.view} storeName={storeName} simulated={config?.paypalMode !== 'sandbox'} />}
               {run.phase === 'stopped' && <p className="callout">Stopped. Nothing was paid.</p>}
               {run.error && (
                 <p className="callout callout--error" role="alert">
@@ -237,7 +237,7 @@ function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove
   );
 }
 
-function ReceiptCard({ view, storeName }: { view: RunView; storeName: string }) {
+function ReceiptCard({ view, storeName, simulated }: { view: RunView; storeName: string; simulated: boolean }) {
   const r = view.receipt;
   return (
     <section className="receipt" aria-label="Receipt">
@@ -283,7 +283,7 @@ function ReceiptCard({ view, storeName }: { view: RunView; storeName: string }) 
         <br />
         Capture {view.capture?.id}
         <br />
-        {view.state === 'settled' ? 'Settled: confirmed by PayPal webhook' : 'Captured: waiting for PayPal webhook'}
+        {simulated ? 'Simulated PayPal: no money moved' : view.state === 'settled' ? 'Settled: confirmed by PayPal webhook' : 'Captured: waiting for PayPal webhook'}
       </p>
     </section>
   );

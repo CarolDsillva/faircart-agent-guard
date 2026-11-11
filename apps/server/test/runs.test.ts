@@ -158,7 +158,10 @@ describe('receipt', () => {
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
     await call('POST', `/api/runs/${id}/checkout`);
     const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
-    expect(r.caught.map((c: any) => c.paise)).toEqual([4900, 9900]);
+    expect(r.caught).toEqual([
+      { label: '1-year freshness protection', paise: 4900 },
+      { label: 'Demo Pass (3 months)', paise: 9900 },
+    ]);
     expect(r.triedPaise).toBe(31300 + 4900 + 9900);
   });
 });
@@ -216,5 +219,14 @@ describe('the agent asking you', () => {
     expect(r.json.state).toBe('awaiting_human');
     const a = await call('POST', `/api/runs/${id}/amend`, { approved: [{ label: 'Handling charge', kind: 'handling', paise: 1500 }, { label: 'Platform fee', kind: 'platform', paise: 900 }] });
     expect(a.json.state).toBe('shopping');
+  });
+});
+
+describe('receipt labels', () => {
+  it('names an add-on removed before the basket by what it is, not by the checkbox wording', async () => {
+    const { call } = setup([untickPlan]);
+    const id = await start(call);
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
+    expect((await call('GET', `/api/runs/${id}`)).json.receipt.caught).toEqual([{ label: '1-year freshness protection', paise: 4900 }]);
   });
 });
