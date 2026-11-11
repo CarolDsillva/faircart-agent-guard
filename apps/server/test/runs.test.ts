@@ -110,11 +110,11 @@ describe('runs API', () => {
     expect(r.json).toEqual({ error: 'run_expired' });
   });
 
-  it('stops planning after 8 planner calls', async () => {
-    const { call } = setup(Array.from({ length: 9 }, () => untickPlan));
+  it('stops planning after 12 AI planner calls', async () => {
+    const { call } = setup(Array.from({ length: 13 }, () => untickPlan));
     const id = await start(call);
     let last: any;
-    for (let i = 0; i < 9; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
+    for (let i = 0; i < 13; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
     expect(last.json.plan).toBeNull();
     expect(last.json.state).toBe('failed');
   });
@@ -202,5 +202,19 @@ describe('planning from the page as it is now', () => {
     expect(first.json.plan.actions.map((a: any) => a.tool)).toEqual(['dismiss_prompt']);
     const second = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: 'item' }));
     expect(second.json.plan.actions.map((a: any) => a.tool)).toEqual(['set_control', 'click']);
+  });
+});
+
+describe('the agent asking you', () => {
+  it('pauses for the human when the planner asks, and resumes after approval', async () => {
+    const ask = { actions: [{ tool: 'ask_user', question: 'Approve the ₹15 handling and ₹9 platform fees?', amounts: [{ label: 'Handling charge', paise: 1500 }], explanation: 'These fees are not allowed.' }] };
+    const { call } = setup([checkoutPlan, ask]);
+    const id = await start(call);
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean }, { pageId: 'pay', help: false }));
+    await call('POST', `/api/runs/${id}/checkout`); // fees unfixable, ₹10 fixable → still shopping
+    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean }, { pageId: 'pay' }));
+    expect(r.json.state).toBe('awaiting_human');
+    const a = await call('POST', `/api/runs/${id}/amend`, { approved: [{ label: 'Handling charge', kind: 'handling', paise: 1500 }, { label: 'Platform fee', kind: 'platform', paise: 900 }] });
+    expect(a.json.state).toBe('shopping');
   });
 });

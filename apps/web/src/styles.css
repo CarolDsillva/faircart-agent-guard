@@ -386,6 +386,9 @@ select:disabled {
 .blocked li {
   color: var(--block);
 }
+.blocked li.is-fixable {
+  color: var(--slate);
+}
 
 /* Pay */
 .card--pay h2 {

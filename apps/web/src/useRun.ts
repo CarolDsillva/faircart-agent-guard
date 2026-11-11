@@ -152,7 +152,10 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
               return;
             }
             push({ kind: 'action', title: describe(action), detail: action.explanation });
-            if (action.tool === 'ask_user') continue;
+            if (action.tool === 'ask_user') {
+              setPhase('awaiting');
+              return;
+            }
             const r = await runAction(action, { observe, waitForNavigation });
             if (r.tap) taps.current.push(r.tap);
             if (r.result === 'stale') {

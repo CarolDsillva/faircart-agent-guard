@@ -148,7 +148,10 @@ export function runRoutes(deps: RunDeps) {
     for (const a of plan.actions) run.history.push(`${a.tool}${'controlId' in a ? ` ${a.controlId}` : ''}: ${a.explanation}`);
     store.audit(run, 'planner', 'planned', { planner: run.planner, actions: plan.actions });
     const stop = plan.actions.find((a) => a.tool === 'stop');
+    const ask = plan.actions.find((a) => a.tool === 'ask_user');
     if (stop && stop.tool === 'stop') store.transition(run, 'stopped', 'planner', 'stopped', { reason: stop.reason });
+    // The agent can only ask; the run waits for the human's answer.
+    else if (ask && ask.tool === 'ask_user') store.transition(run, 'awaiting_human', 'planner', 'asked', { question: ask.question });
     return c.json({ findings, plan, planner: run.planner, state: run.state, ...(plannerError ? { plannerError } : {}) });
   });
 
@@ -188,7 +191,9 @@ export function runRoutes(deps: RunDeps) {
     if (notRaised.length) return c.json({ error: 'not_raised', labels: notRaised.map((a) => a.label) }, 400);
 
     run.mandate = amendMandate(run.mandate, body.approved, deps.now().toISOString());
-    run.lastGuard = null;
+    // Keep what the human didn't answer (an amount to question with the store) so the agent goes straight to it.
+    const rest = (run.lastGuard ?? []).filter((r) => !(r.code === 'FEE_NOT_ALLOWED' && body.approved.some((a) => a.label === r.subject && a.paise === r.paise)));
+    run.lastGuard = rest.length ? rest : null;
     run.history.push(`The user approved: ${body.approved.map((a) => `${a.label} ${formatInr(a.paise)}`).join(', ')}. Request checkout again.`);
     store.transition(run, 'shopping', 'human', 'amended', { version: run.mandate.version, approved: body.approved });
     return c.json({ state: run.state, mandateVersion: run.mandate.version });

@@ -216,12 +216,15 @@ function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove
       {other.length > 0 && (
         <ul className="blocked">
           {other.map((r, i) => (
-            <li key={i}>{r.label}. This can't be approved.</li>
+            <li key={i} className={r.fixable ? 'is-fixable' : ''}>
+              {r.label}
+              {r.paise !== undefined ? ` (${formatInr(r.paise)})` : ''}. {r.fixable ? 'The agent will take this up with the store.' : "This can't be approved."}
+            </li>
           ))}
         </ul>
       )}
       <div className="row">
-        {fees.length > 0 && other.length === 0 && (
+        {fees.length > 0 && (
           <button className="btn btn--primary" disabled={!picked.length} onClick={() => onApprove(fees.filter((f) => picked.includes(f.subject!)).map((f) => ({ label: f.subject!, kind: kindOf(f.subject!) as Approval['kind'], paise: f.paise! })))}>
             Approve {picked.length === fees.length ? 'these charges' : 'selected charges'}
           </button>

@@ -57,7 +57,7 @@ export class BadState extends Error {
 }
 
 /** AI planner calls per run (cost and latency). */
-export const MAX_PLANNER_CALLS = 8;
+export const MAX_PLANNER_CALLS = 12;
 /** Planning steps per run, AI or backup: ends runs that never finish. */
 export const MAX_TURNS = 20;
 
