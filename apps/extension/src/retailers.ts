@@ -54,8 +54,23 @@ export const DEMO_RETAILER: Retailer = {
   note: 'A fictional practice store with deliberate dark patterns. Nothing here is real.',
 };
 
+/** The Agent Guard's honest control store: same product, no planted patterns. */
+export const FAIRMART_RETAILER: Retailer = {
+  ...DEMO_RETAILER,
+  name: 'FairMart (honest demo store)',
+  note: 'A fictional practice store with no dark patterns, used to show FairCart raises nothing on a fair checkout.',
+};
+
+/** Hosts where the Agent Guard web demo serves its practice stores. */
+const DEMO_HOSTS = /^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9-]+\.onrender\.com)$/;
+
+/** The hosted practice stores: /shop or /shop.html on a demo host. */
+export function isWebShopUrl(u: URL): boolean {
+  return (u.protocol === 'http:' || u.protocol === 'https:') && DEMO_HOSTS.test(u.hostname) && /^\/shop(\.html)?$/.test(u.pathname);
+}
+
 export function isDemoUrl(u: URL): boolean {
-  return u.protocol === 'chrome-extension:' && u.pathname === '/demo.html';
+  return (u.protocol === 'chrome-extension:' && u.pathname === '/demo.html') || isWebShopUrl(u);
 }
 
 export function retailerById(id: string): Retailer | undefined {
@@ -70,6 +85,7 @@ export function retailerForUrl(url: string): Retailer | undefined {
   } catch {
     return undefined;
   }
+  if (isWebShopUrl(u) && u.searchParams.get('store') === 'fairmart') return FAIRMART_RETAILER;
   if (isDemoUrl(u)) return DEMO_RETAILER;
   return RETAILERS.find((r) => r.matches.some((m) => matchPattern(m, u)));
 }

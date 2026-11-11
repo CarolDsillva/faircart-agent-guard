@@ -1,4 +1,5 @@
 import type { RetailerId, Stage } from '@faircart/schemas';
+import { extractActions } from './actions';
 import { stageFromContent } from './choices';
 import { addPageWideFacts, productFromJsonLd, stageFromUrl } from './common';
 import { emptyExtraction, type SiteAdapter } from './types';
@@ -63,6 +64,7 @@ export function genericAdapter(retailer: RetailerId): SiteAdapter {
         };
       }
       addPageWideFacts(x, doc, refs);
+      x.controls.push(...extractActions(doc, refs).filter((c) => !x.controls.some((o) => o.id === c.id)));
       x.readability = x.product || x.bill ? (x.gaps.length ? 'partial' : 'full') : 'none';
       if (x.readability === 'none') x.gaps.push('Limited support: FairCart found no structured product or bill data on this page.');
       return x;
