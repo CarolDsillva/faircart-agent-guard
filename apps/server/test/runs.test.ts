@@ -238,3 +238,14 @@ describe('receipt labels', () => {
     expect((await call('GET', `/api/runs/${id}`)).json.receipt.caught).toEqual([{ label: '1-year freshness protection', paise: 4900 }]);
   });
 });
+
+describe('receipt counts an unexplained amount the agent disputed before checking out', () => {
+  it('records the ₹10 from the bill itself, not only from a checker block', async () => {
+    const { call } = setup([checkoutPlan, checkoutPlan]);
+    const id = await start(call);
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', clean, { pageId: 'pay' }));
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
+    const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
+    expect(r.caught).toEqual([{ label: 'Unexplained amount in the total', paise: 1000 }]);
+  });
+});

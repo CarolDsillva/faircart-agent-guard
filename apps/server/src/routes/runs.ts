@@ -119,6 +119,10 @@ export function runRoutes(deps: RunDeps) {
     for (const ctl of snap.controls) {
       if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, addOnName(ctl.label), toPaise(ctl.paidAmount), false);
     }
+    // For the receipt only (the checker re-adds the bill itself): an amount no line explains.
+    if (snap.stage === 'checkout' && body.bill?.difference && body.bill.difference > 0) {
+      store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', toPaise(body.bill.difference), true);
+    }
     for (const row of body.bill?.rows ?? []) {
       if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true);
     }
