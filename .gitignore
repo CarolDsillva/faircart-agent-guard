@@ -9,3 +9,6 @@ apps/android/**/build/
 apps/android/local.properties
 .idea/
 *.iml
+.superpowers/
+test-results/
+playwright-report/

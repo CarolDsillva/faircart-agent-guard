@@ -4,7 +4,10 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "apps/extension"
+    "apps/extension",
+    "apps/shop",
+    "apps/web",
+    "apps/server"
   ],
   "engines": {
     "node": ">=22"
