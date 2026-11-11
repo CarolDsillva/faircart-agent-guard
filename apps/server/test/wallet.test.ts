@@ -87,3 +87,42 @@ describe('agent wallet', () => {
     expect([r.status, r.json.error]).toEqual([403, 'no_wallet']);
   });
 });
+
+describe('payments ledger', () => {
+  it('records each finished run with what the store tried, what was paid, and what FairCart caught', async () => {
+    const { call, runId } = await passed({ autopay: true });
+    await link(call, runId);
+    const authorization = await checkout(call, runId);
+    await call('POST', '/shop/api/agent-pay', { authorization });
+    const { json } = await call('GET', '/api/ledger');
+    expect(json.rows).toHaveLength(1);
+    expect(json.rows[0]).toMatchObject({
+      runId,
+      store: 'FairMart',
+      state: 'captured',
+      triedPaise: 28900,
+      paidPaise: 28900,
+      savedPaise: 0,
+      paidUsdCents: 328,
+      paidBy: 'agent',
+      intentMandateId: expect.stringMatching(/^IM-/),
+      cartMandateId: expect.stringMatching(/^CM-/),
+      orderId: expect.stringMatching(/^MOCK/),
+      caught: [],
+    });
+  });
+
+  it('records stopped runs too, with the charges caught before stopping', async () => {
+    const { call, runId } = await passed({ autopay: false });
+    await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'basket', initialState('demomart')));
+    await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'pay', { protection: false, pass: false, disputed: true }, { pageId: 'pay' }));
+    await call('POST', `/api/runs/${runId}/checkout`);
+    await call('POST', `/api/runs/${runId}/amend`, { stop: true });
+    const row = (await call('GET', '/api/ledger')).json.rows[0];
+    expect(row).toMatchObject({ store: 'DemoMart', state: 'stopped', paidPaise: null });
+    expect(row.caught).toEqual([
+      { label: 'Freshness protection (1 year)', paise: 4900, pattern: 'Added without your choice' },
+      { label: 'Demo Pass (3 months)', paise: 9900, pattern: 'Added without your choice' },
+    ]);
+  });
+});

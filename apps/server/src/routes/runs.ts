@@ -89,6 +89,29 @@ function receipt(run: Run) {
   };
 }
 
+/** One row of the payments ledger: a finished run, as the receipt tells it. */
+export function ledgerRow(run: Run) {
+  const r = receipt(run);
+  return {
+    runId: run.id,
+    at: run.audit.at(-1)?.at ?? null,
+    store: run.store ?? null,
+    state: run.state,
+    planner: run.planner,
+    triedPaise: r.triedPaise,
+    paidPaise: r.paidPaise,
+    savedPaise: r.savedPaise,
+    paidUsdCents: r.paidUsdCents,
+    paidBy: r.paidBy,
+    approved: r.approved,
+    caught: [...run.caught.values()].map(({ label, paise, pattern }) => ({ label, paise, pattern })),
+    intentMandateId: r.intentMandateId,
+    cartMandateId: r.cartMandateId,
+    orderId: run.orderId ?? null,
+    error: run.error ?? null,
+  };
+}
+
 export function runRoutes(deps: RunDeps) {
   const { store } = deps;
   const app = new Hono();
@@ -125,16 +148,17 @@ export function runRoutes(deps: RunDeps) {
     // Findings use the journey (what was shown earlier on this page counts); planning and checking use the live page.
     const { findings } = evaluate({ snapshot: added.current, journey: added.earlier, taps: journey.taps }, CORE);
     run.last = { snapshot: snap, bill: body.bill, findings };
+    run.store = new URL(body.url).searchParams.get('store') === 'fairmart' ? 'FairMart' : 'DemoMart';
     if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.lastCheckoutPaise = toPaise(body.bill.displayedTotal);
     for (const ctl of snap.controls) {
-      if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, addOnName(ctl.label), toPaise(ctl.paidAmount), false);
+      if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, addOnName(ctl.label), toPaise(ctl.paidAmount), false, 'Pre-ticked add-on');
     }
     for (const row of body.bill?.rows ?? []) {
-      if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true);
+      if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true, 'Added without your choice');
     }
     // For the receipt only (the checker re-adds the bill itself): an amount no line explains.
     if (snap.stage === 'checkout' && body.bill?.difference && body.bill.difference > 0) {
-      store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', toPaise(body.bill.difference), true);
+      store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', toPaise(body.bill.difference), true, 'Unexplained amount');
     }
     store.audit(run, 'sensor', 'observed', { stage: added.current.stage, url: body.url, findings: findings.map((f) => f.ruleId) });
 
@@ -183,7 +207,7 @@ export function runRoutes(deps: RunDeps) {
     const result = guard({ mandate: run.mandate, snapshot: run.last.snapshot, bill: run.last.bill, findings: run.last.findings, runId: run.id, now: deps.now(), secret: deps.secret });
     if (result.verdict === 'BLOCK') {
       run.lastGuard = result.reasons;
-      for (const r of result.reasons) if (r.code === 'UNEXPLAINED_AMOUNT' && r.paise) store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', r.paise, true);
+      for (const r of result.reasons) if (r.code === 'UNEXPLAINED_AMOUNT' && r.paise) store.noteCaught(run, 'unexplained', 'Unexplained amount in the total', r.paise, true, 'Unexplained amount');
       run.history.push(`The checker blocked payment: ${result.reasons.map((r) => r.label).join('; ')}.`);
       const fixable = result.reasons.some((r) => r.fixable);
       if (fixable) store.audit(run, 'guard', 'blocked', { reasons: result.reasons });

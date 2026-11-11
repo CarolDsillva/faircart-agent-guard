@@ -52,7 +52,9 @@ export interface Run {
   /** The last total the store showed at checkout. */
   lastCheckoutPaise: number;
   /** Paid extras and unexplained amounts the store put in front of the agent, keyed so each counts once. */
-  caught: Map<string, { label: string; paise: number; fromBill: boolean }>;
+  caught: Map<string, { label: string; paise: number; fromBill: boolean; pattern: string }>;
+  /** Which practice store the agent shopped, from the page URL. */
+  store?: 'DemoMart' | 'FairMart';
   error?: string;
   audit: AuditEntry[];
   touchedAt: number;
@@ -72,6 +74,8 @@ export const MAX_TURNS = 20;
 /** In-memory runs with a sliding TTL. A restart loses them; the UI offers a new run. */
 export class RunStore {
   private runs = new Map<string, Run>();
+  /** Finished runs for the payments ledger: kept after the live run expires (latest 500). */
+  private finished = new Map<string, Run>();
   constructor(
     private readonly ttlMs = 30 * 60_000,
     private readonly clock: () => number = () => Date.now(),
@@ -109,6 +113,11 @@ export class RunStore {
     if (!NEXT[run.state].includes(to)) throw new BadState(run.state);
     run.state = to;
     this.audit(run, actor, event, data);
+    if (to === 'captured' || to === 'settled' || to === 'stopped' || to === 'failed') {
+      this.finished.delete(run.id);
+      this.finished.set(run.id, run);
+      while (this.finished.size > 500) this.finished.delete(this.finished.keys().next().value!);
+    }
   }
 
   fail(run: Run, actor: Actor, error: string) {
@@ -118,9 +127,14 @@ export class RunStore {
   }
 
   /** Record something the store tried to charge for. Bill labels win over control labels. */
-  noteCaught(run: Run, key: string, label: string, paise: number, fromBill: boolean) {
+  noteCaught(run: Run, key: string, label: string, paise: number, fromBill: boolean, pattern: string) {
     const prev = run.caught.get(key);
-    if (!prev || (fromBill && !prev.fromBill)) run.caught.set(key, { label, paise, fromBill });
+    if (!prev || (fromBill && !prev.fromBill)) run.caught.set(key, { label, paise, fromBill, pattern });
+  }
+
+  /** Finished runs, newest first. */
+  ledger(): Run[] {
+    return [...this.finished.values()].reverse();
   }
 
   audit(run: Run, actor: Actor, event: string, data?: unknown) {
