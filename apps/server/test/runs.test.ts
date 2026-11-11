@@ -209,16 +209,24 @@ describe('planning from the page as it is now', () => {
 });
 
 describe('the agent asking you', () => {
-  it('pauses for the human when the planner asks, and resumes after approval', async () => {
-    const ask = { actions: [{ tool: 'ask_user', question: 'Approve the ₹15 handling and ₹9 platform fees?', amounts: [{ label: 'Handling charge', paise: 1500 }], explanation: 'These fees are not allowed.' }] };
-    const { call } = setup([checkoutPlan, ask]);
+  const ask = { actions: [{ tool: 'ask_user', question: 'Approve the ₹15 handling fee?', amounts: [{ label: 'Handling charge', paise: 1500 }], explanation: 'This fee is not allowed.' }] };
+
+  it('pauses for the human when the planner asks and nothing is left for the agent to fix', async () => {
+    const { call } = setup([ask]);
     const id = await start(call);
-    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean }, { pageId: 'pay', help: false }));
-    await call('POST', `/api/runs/${id}/checkout`); // fees unfixable, ₹10 fixable → still shopping
-    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean }, { pageId: 'pay' }));
+    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
     expect(r.json.state).toBe('awaiting_human');
-    const a = await call('POST', `/api/runs/${id}/amend`, { approved: [{ label: 'Handling charge', kind: 'handling', paise: 1500 }, { label: 'Platform fee', kind: 'platform', paise: 900 }] });
-    expect(a.json.state).toBe('shopping');
+    expect((await call('POST', `/api/runs/${id}/amend`, { stop: true })).json.state).toBe('stopped');
+  });
+
+  it('does not let the planner ask while the checker listed something fixable; the backup planner fixes it', async () => {
+    const { call } = setup([checkoutPlan, ask, ask]);
+    const id = await start(call);
+    await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', clean, { pageId: 'pay' }));
+    await call('POST', `/api/runs/${id}/checkout`); // ₹10 unexplained is fixable through the bill help
+    const r = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', clean, { pageId: 'pay' }));
+    expect(r.json).toMatchObject({ state: 'shopping', planner: 'backup' });
+    expect(r.json.plan.actions[0]).toMatchObject({ tool: 'click', controlId: 'act:question-about-your-bill' });
   });
 });
 

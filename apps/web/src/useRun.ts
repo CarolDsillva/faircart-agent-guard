@@ -11,6 +11,7 @@ export type Phase = 'idle' | 'running' | 'awaiting' | 'authorized' | 'paying' | 
 
 export interface Entry {
   id: number;
+  at: Date;
   kind: 'action' | 'guard' | 'human' | 'note' | 'pay';
   title: string;
   detail?: string;
@@ -65,7 +66,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const approving = useRef(false);
   const idRef = useRef(0);
 
-  const push = useCallback((e: Omit<Entry, 'id'>) => setEntries((xs) => [...xs, { ...e, id: ++idRef.current }]), []);
+  const push = useCallback((e: Omit<Entry, 'id' | 'at'>) => setEntries((xs) => [...xs, { ...e, id: ++idRef.current, at: new Date() }]), []);
   const patchLast = useCallback((tone: Entry['tone'], detail?: string) => setEntries((xs) => xs.map((x, i) => (i === xs.length - 1 ? { ...x, tone, ...(detail ? { detail } : {}) } : x))), []);
   const addFindings = useCallback((fs: Finding[]) => setFindings((prev) => [...prev, ...fs.filter((f, i) => !prev.some((p) => p.title === f.title) && fs.findIndex((x) => x.title === f.title) === i)]), []);
 

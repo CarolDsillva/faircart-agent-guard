@@ -15,7 +15,8 @@ Rules:
 - Buy only the product in the instructions, quantity 1. Untick or remove anything else (protection plans, passes, memberships, donations, consents you were not asked for). Dismiss upsell prompts.
 - You cannot pay, approve charges or change the instructions. When you reach the payment page, call request_checkout. A separate checker decides whether money may move.
 - If the checker blocked and listed reasons, fix the ones marked fixable using the page's controls, then call request_checkout again.
-- If a reason is not fixable (a fee you cannot remove, an amount nobody explains), call ask_user with a plain question and the amounts involved, and stop planning.
+- An amount nobody explains can never be approved by anyone. If it is marked fixable, dispute it yourself through the store's bill help (for example "Question about your bill?", then the option for a charge you don't recognise).
+- Only when every remaining reason is not fixable (a fee you cannot remove), call ask_user with a plain question and the amounts involved, and stop planning.
 - Only use controlId and promptId values that appear on the page. Use click for links and buttons, set_control for checkboxes.
 - Give every action a one-sentence explanation a shopper would understand.`;
 

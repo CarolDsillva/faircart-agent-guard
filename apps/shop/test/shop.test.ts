@@ -40,7 +40,9 @@ describe('DemoMart (web)', () => {
   });
 
   it('has no guide text that the bill reader could mistake for a line', () => {
-    expect(read('demomart', 'pay', trap).bill?.rows.filter((r) => r.kind === 'item')).toHaveLength(1);
+    const rows = read('demomart', 'pay', trap).bill!.rows;
+    expect(rows.filter((r) => r.kind === 'item').every((r) => r.label.includes('Sunrise Chakki Atta 5 kg'))).toBe(true);
+    expect(rows.map((r) => r.label)).toEqual(['Item total', 'Freshness protection (1 year)', 'Demo Pass (3 months)', 'Delivery charge', 'Handling charge', 'Platform fee', 'To pay']);
   });
 });
 

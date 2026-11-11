@@ -28,6 +28,13 @@ describe('validatePlan', () => {
     const r = validatePlan({ actions: [{ tool: 'click', controlId: 'act:buy-now', explanation: 'x' }] }, snap);
     expect(r).toEqual({ ok: false, error: expect.stringContaining('act:buy-now') });
   });
+  it('rejects asking the user while the checker listed something the agent can fix itself', () => {
+    const ask = { actions: [{ tool: 'ask_user', question: 'Approve ₹10?', amounts: [{ label: 'Unexplained', paise: 1000 }], explanation: 'Asking.' }] };
+    const fixable = [{ code: 'UNEXPLAINED_AMOUNT', label: 'x', paise: 1000, fixable: true }] as const;
+    expect(validatePlan(ask, snap, [...fixable])).toEqual({ ok: false, error: expect.stringMatching(/fixable/i) });
+    expect(validatePlan(ask, snap, [{ code: 'FEE_NOT_ALLOWED', label: 'y', paise: 1500, fixable: false }]).ok).toBe(true);
+  });
+
   it('rejects an unknown tool', () => {
     expect(validatePlan({ actions: [{ tool: 'pay', explanation: 'x' }] }, snap).ok).toBe(false);
   });

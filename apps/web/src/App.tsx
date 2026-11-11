@@ -21,38 +21,65 @@ export function App() {
   }, []);
 
   const storeName = run.store === 'fairmart' ? 'FairMart' : 'DemoMart';
+  const [path, setPath] = useState('/atta/sunrise-chakki-atta-5kg');
+  const onFrameLoad = () => {
+    run.onFrameLoad();
+    const view = new URLSearchParams(frame.current?.contentWindow?.location.search ?? '').get('view');
+    setPath(view === 'basket' ? '/basket' : view === 'pay' ? '/checkout/payment' : '/atta/sunrise-chakki-atta-5kg');
+  };
+  const busy = run.phase === 'running' || run.phase === 'paying';
 
   return (
     <div className="app">
       <header className="top">
         <div className="brand">
           <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 3 6v6c0 5 3.8 9.4 9 10 5.2-.6 9-5 9-10V6l-9-4Z" fill="currentColor" /><path d="m8 12 3 3 5-6" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 3 6v6c0 5 3.8 9.4 9 10 5.2-.6 9-5 9-10V6l-9-4Z" fill="currentColor" /><path d="m8 12 3 3 5-6" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </span>
-          <div>
-            <h1>FairCart Agent Guard</h1>
-            <p>The AI shops. FairCart checks every charge. PayPal only moves the money you approved.</p>
-          </div>
+          <span className="brand__name">FairCart</span>
+          <span className="brand__product">Agent Guard</span>
         </div>
+        <p className="top__line">The AI shops. FairCart checks every charge. PayPal only moves the money you approved.</p>
         <div className="status" aria-live="polite">
-          <span className={`pill ${run.planner === 'backup' ? 'pill--warn' : ''}`}>{run.planner === 'backup' ? 'Backup planner (no AI)' : 'Planner: Gemini'}</span>
-          <span className="pill">{config?.paypalMode === 'sandbox' ? 'PayPal sandbox' : 'PayPal simulated'}</span>
+          <span className={`status__item ${run.planner === 'backup' ? 'is-warn' : ''}`}>
+            <i aria-hidden="true" />
+            {run.planner === 'backup' ? 'Backup planner (no AI)' : 'Gemini planner'}
+          </span>
+          <span className="status__item">
+            <i aria-hidden="true" />
+            {config?.paypalMode === 'sandbox' ? 'PayPal sandbox' : 'PayPal simulated'}
+          </span>
         </div>
       </header>
 
       <main className="split">
         <section className="pane pane--store" aria-label="What the agent sees">
-          <div className="store-bar">
-            <span className="store-bar__title">What the agent sees</span>
+          <div className="store-switch">
+            <span>Store</span>
             <div className="seg" role="tablist" aria-label="Store">
               {(['demomart', 'fairmart'] as Store[]).map((s) => (
-                <button key={s} role="tab" aria-selected={run.store === s} className={run.store === s ? 'is-on' : ''} disabled={run.phase === 'running' || run.phase === 'paying'} onClick={() => run.reset(s)}>
-                  {s === 'demomart' ? 'DemoMart (tricky)' : 'FairMart (honest)'}
+                <button key={s} role="tab" aria-selected={run.store === s} className={run.store === s ? 'is-on' : ''} disabled={busy} onClick={() => run.reset(s)}>
+                  {s === 'demomart' ? 'DemoMart' : 'FairMart'}
+                  <small>{s === 'demomart' ? 'full of tricks' : 'honest'}</small>
                 </button>
               ))}
             </div>
           </div>
-          <iframe ref={frame} title={`${storeName} practice store`} src="/shop.html?view=item&reset=1" onLoad={run.onFrameLoad} />
+          <div className="browser">
+            <div className="browser__bar">
+              <span className="browser__dots" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="browser__url">
+                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z" fill="currentColor" /></svg>
+                {storeName.toLowerCase()}.example{path}
+              </span>
+              <span className={`browser__agent ${busy ? 'is-live' : ''}`}>{busy ? 'Agent is browsing' : 'Agent idle'}</span>
+            </div>
+            <iframe ref={frame} title={`${storeName} store, as the agent sees it`} src="/shop.html?view=item&reset=1" onLoad={onFrameLoad} />
+          </div>
         </section>
 
         <section className="pane pane--run" aria-label="The run">
@@ -111,8 +138,8 @@ function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: Man
         onSign({ maxTotalRupees: max, allowedFees: fees });
       }}
     >
-      <h2>Your instructions</h2>
-      <p className="muted">The agent will shop {storeName} for you. These rules are the only thing that can let money move, and only you can change them.</p>
+      <h2>Send an agent shopping</h2>
+      <p className="muted">It will buy from {storeName} for you. These rules are the only thing that lets money move, and only you can change them.</p>
       <label className="field">
         <span>Buy</span>
         <select disabled value={PRODUCT.sku}>
@@ -152,23 +179,34 @@ function Timeline({ entries, running }: { entries: Entry[]; running: boolean }) 
     // scrollIntoView returns a Promise in recent browsers; an effect must not return it.
     void end.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [entries.length]);
+  const time = (d: Date) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   return (
-    <section className="card">
-      <h2>What happened</h2>
-      <ol className="timeline">
+    <section className="panel">
+      <h2 className="panel__title">Activity</h2>
+      <ol className="feed">
         {entries.map((e) => (
-          <li key={e.id} className={`t t--${e.kind} ${e.tone ? `t--${e.tone}` : ''}`}>
-            <span className="t__who">{WHO[e.kind]}</span>
-            <div>
-              <p className="t__title">{e.title}</p>
-              {e.detail && <p className="t__detail">{e.detail}</p>}
+          <li key={e.id} className={`ev ev--${e.kind} ${e.tone ? `ev--${e.tone}` : ''}`}>
+            <span className="ev__icon" aria-hidden="true">
+              {ICON[e.tone === 'block' ? 'block' : e.tone === 'pass' ? 'pass' : e.kind]}
+            </span>
+            <div className="ev__body">
+              <p className="ev__meta">
+                <b>{WHO[e.kind]}</b>
+                <time>{time(e.at)}</time>
+              </p>
+              <p className="ev__title">{e.title}</p>
+              {e.detail && <p className="ev__detail">{e.detail}</p>}
             </div>
           </li>
         ))}
         {running && (
-          <li ref={end} className="t t--thinking">
-            <span className="t__who">Agent</span>
-            <p className="t__title">Reading the page…</p>
+          <li ref={end} className="ev ev--thinking">
+            <span className="ev__icon" aria-hidden="true">
+              <span className="spinner" />
+            </span>
+            <div className="ev__body">
+              <p className="ev__title">Reading the page…</p>
+            </div>
           </li>
         )}
       </ol>
@@ -176,12 +214,22 @@ function Timeline({ entries, running }: { entries: Entry[]; running: boolean }) 
   );
 }
 
+const ICON: Record<string, React.ReactNode> = {
+  action: <svg viewBox="0 0 16 16"><path d="M3 2l9 5-4 1-1 4z" fill="currentColor" /></svg>,
+  guard: <svg viewBox="0 0 16 16"><path d="M8 1 2 3.5V8c0 3.3 2.5 6.3 6 7 3.5-.7 6-3.7 6-7V3.5L8 1Z" fill="currentColor" /></svg>,
+  block: <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>,
+  pass: <svg viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  human: <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3" fill="currentColor" /><path d="M2.5 14c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5z" fill="currentColor" /></svg>,
+  note: <svg viewBox="0 0 16 16"><path d="M8 3v6M8 12v.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>,
+  pay: <svg viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="9" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.6" /></svg>,
+};
+
 const WHO: Record<Entry['kind'], string> = { action: 'Agent', guard: 'Checker', human: 'You', note: 'Note', pay: 'PayPal' };
 
 function Findings({ findings }: { findings: { id: string; title: string; category: string }[] }) {
   return (
-    <section className="card card--findings">
-      <h2>FairCart noticed</h2>
+    <section className="panel panel--findings">
+      <h2 className="panel__title">FairCart noticed</h2>
       <ul className="findings">
         {findings.map((f) => (
           <li key={f.id}>{f.title}</li>

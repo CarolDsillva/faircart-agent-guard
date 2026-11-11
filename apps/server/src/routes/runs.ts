@@ -136,14 +136,14 @@ export function runRoutes(deps: RunDeps) {
     // Once the AI planner has failed in a run, the backup planner finishes it: no repeated timeouts.
     let plan: Plan;
     let plannerError: string | undefined;
-    const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), snap) : null;
+    const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), snap, run.lastGuard) : null;
     if (ai?.ok) {
       plan = ai.plan;
     } else {
       plannerError = ai && !ai.ok ? ai.error : undefined;
       if (run.planner === 'ai') store.audit(run, 'planner', 'backup_planner', { error: plannerError });
       run.planner = 'backup';
-      const backup = validatePlan(backupPlan(brief), snap);
+      const backup = validatePlan(backupPlan(brief), snap, run.lastGuard);
       if (!backup.ok) {
         store.fail(run, 'planner', backup.error);
         return c.json({ findings, plan: null, state: run.state, error: run.error });

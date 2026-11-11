@@ -1,3 +1,4 @@
+import type { Reason } from '@faircart/guard';
 import type { ScreenSnapshot } from '@faircart/schemas';
 import type { Messages } from './prompt';
 import { PLAN_JSON_SCHEMA, Plan } from './tools';
@@ -10,7 +11,7 @@ export interface LLMProvider {
 export type PlanResult = { ok: true; plan: Plan } | { ok: false; error: string };
 
 /** Schema check, then every id must exist on the page the plan is for. */
-export function validatePlan(raw: unknown, snapshot: ScreenSnapshot): PlanResult {
+export function validatePlan(raw: unknown, snapshot: ScreenSnapshot, lastGuard: Reason[] | null = null): PlanResult {
   const parsed = Plan.safeParse(raw);
   if (!parsed.success) return { ok: false, error: `Plan does not match the schema: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}` };
   const controls = new Set(snapshot.controls.map((c) => c.id));
@@ -19,11 +20,14 @@ export function validatePlan(raw: unknown, snapshot: ScreenSnapshot): PlanResult
     if ((a.tool === 'set_control' || a.tool === 'click') && !controls.has(a.controlId)) return { ok: false, error: `controlId "${a.controlId}" is not on this page` };
     if (a.tool === 'dismiss_prompt' && !prompts.has(a.promptId)) return { ok: false, error: `promptId "${a.promptId}" is not on this page` };
   }
+  if (parsed.data.actions.some((a) => a.tool === 'ask_user') && lastGuard?.some((r) => r.fixable)) {
+    return { ok: false, error: "Do not ask the user yet: the checker marked some problems fixable. Fix them with the page controls first (dispute an unexplained amount through the store's bill help), then request checkout." };
+  }
   return { ok: true, plan: parsed.data };
 }
 
 /** Ask once; if the plan is invalid, ask again with the reason; then give up. */
-export async function planWithRetry(provider: LLMProvider, messages: Messages, snapshot: ScreenSnapshot): Promise<PlanResult> {
+export async function planWithRetry(provider: LLMProvider, messages: Messages, snapshot: ScreenSnapshot, lastGuard: Reason[] | null = null): Promise<PlanResult> {
   let msgs = messages;
   let last = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -33,7 +37,7 @@ export async function planWithRetry(provider: LLMProvider, messages: Messages, s
     } catch (e) {
       return { ok: false, error: `The planner could not be reached: ${e instanceof Error ? e.message : String(e)}` };
     }
-    const r = validatePlan(raw, snapshot);
+    const r = validatePlan(raw, snapshot, lastGuard);
     if (r.ok) return r;
     last = r.error;
     msgs = { ...messages, user: `${messages.user}\n\nYour previous plan was invalid: ${r.error}. Return a corrected plan.` };
