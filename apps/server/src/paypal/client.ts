@@ -33,8 +33,46 @@ export class PayPalRest implements PayPal {
   }
 
   async createOrder(body: OrderBody, requestId: string) {
-    const r = await this.call<{ id: string; status: string }>('POST', '/v2/checkout/orders', body, { 'PayPal-Request-Id': requestId });
-    return { id: r.id, status: r.status };
+    type R = { id: string; status: string; purchase_units?: { payments?: { authorizations?: { id: string }[] } }[] };
+    const r = await this.call<R>('POST', '/v2/checkout/orders', body, { 'PayPal-Request-Id': requestId });
+    // Paying with a saved wallet and intent AUTHORIZE can complete at once with the hold already placed.
+    const authorizationId = r.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+    return { id: r.id, status: r.status, ...(authorizationId ? { authorizationId } : {}) };
+  }
+
+  async createSetupToken(urls: { returnUrl: string; cancelUrl: string }, requestId: string) {
+    type R = { id: string; links: { rel: string; href: string }[] };
+    const r = await this.call<R>(
+      'POST',
+      '/v3/vault/setup-tokens',
+      { payment_source: { paypal: { usage_type: 'MERCHANT', customer_type: 'CONSUMER', experience_context: { return_url: urls.returnUrl, cancel_url: urls.cancelUrl, brand_name: 'FairCart Agent Wallet', shipping_preference: 'NO_SHIPPING' } } } },
+      { 'PayPal-Request-Id': requestId },
+    );
+    const approve = r.links.find((l) => l.rel === 'approve')?.href;
+    if (!approve) throw new Error('PayPal returned no approval link for the wallet');
+    return { id: r.id, approveUrl: approve };
+  }
+
+  async createPaymentToken(setupTokenId: string, requestId: string) {
+    const r = await this.call<{ id: string }>('POST', '/v3/vault/payment-tokens', { payment_source: { token: { id: setupTokenId, type: 'SETUP_TOKEN' } } }, { 'PayPal-Request-Id': requestId });
+    return { id: r.id };
+  }
+
+  async authorizeOrder(orderId: string, requestId: string) {
+    type R = { purchase_units: { payments: { authorizations: { id: string; status: string }[] } }[] };
+    const r = await this.call<R>('POST', `/v2/checkout/orders/${encodeURIComponent(orderId)}/authorize`, {}, { 'PayPal-Request-Id': requestId });
+    const a = r.purchase_units[0]?.payments.authorizations[0];
+    if (!a) throw new Error('PayPal returned no authorization');
+    return { authorizationId: a.id, status: a.status };
+  }
+
+  async captureAuthorization(authorizationId: string, requestId: string): Promise<Capture> {
+    const r = await this.call<{ id: string; status: string; amount: { value: string } }>('POST', `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/capture`, {}, { 'PayPal-Request-Id': requestId });
+    return { id: r.id, status: r.status, amount: r.amount.value };
+  }
+
+  async voidAuthorization(authorizationId: string) {
+    await this.call('POST', `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/void`, {});
   }
 
   async getOrder(id: string) {

@@ -41,6 +41,12 @@ export interface Run {
   authzUsed: boolean;
   orderId?: string;
   capture?: { id: string; status: string; amount: string };
+  /** The buyer's saved PayPal (Vault v3 payment token), linked once for this mandate. */
+  wallet?: { paymentTokenId: string; linkedAt: string };
+  /** Who approved the payment: the buyer in PayPal's pop-up, or the agent with the linked wallet. */
+  paidBy?: 'buyer' | 'agent';
+  /** PayPal's hold on an agent-paid order, captured only after FairCart checked the order. */
+  paypalAuthorizationId?: string;
   /** PayPal's capture webhook arrived before the capture request finished. */
   paypalCompleted?: boolean;
   /** The last total the store showed at checkout. */

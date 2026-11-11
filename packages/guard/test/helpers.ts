@@ -13,6 +13,7 @@ export function mandate(over: Partial<Mandate> = {}): Mandate {
     want: { sku: 'DEMO-ATTA-5KG', title: TITLE, maxQuantity: 1 },
     maxTotalPaise: 35000,
     allowedFees: ['delivery'],
+    autopay: false,
     amendments: [],
     ...over,
   };

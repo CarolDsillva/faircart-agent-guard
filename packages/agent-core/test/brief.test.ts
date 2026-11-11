@@ -11,6 +11,7 @@ const mandate: Mandate = {
   want: { sku: 'DEMO-ATTA-5KG', title: 'Sunrise Chakki Atta 5 kg', maxQuantity: 1 },
   maxTotalPaise: 35000,
   allowedFees: ['delivery'],
+  autopay: false,
   amendments: [],
 };
 

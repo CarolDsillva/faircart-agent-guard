@@ -31,7 +31,7 @@ const Bill = z.object({
   unreadable: z.array(z.string()),
 });
 
-const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true }) });
+const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true, autopay: true }) });
 const Observe = z.object({
   seq: z.number().int(),
   pageId: z.string().min(1).max(200),
@@ -55,6 +55,8 @@ export function runView(run: Run) {
     orderId: run.orderId ?? null,
     capture: run.capture ?? null,
     planner: run.planner,
+    paidBy: run.paidBy ?? null,
+    walletLinked: !!run.wallet,
     receipt: receipt(run),
     audit: run.audit,
   };
@@ -69,11 +71,19 @@ function addOnName(label: string): string {
 function receipt(run: Run) {
   const caught = [...run.caught.values()].map(({ label, paise }) => ({ label, paise }));
   const base = run.authorization?.totalPaise ?? run.lastCheckoutPaise;
+  const tried = base + caught.reduce((s, c) => s + c.paise, 0);
+  const paid = run.authorization?.totalPaise ?? null;
   return {
-    triedPaise: base + caught.reduce((s, c) => s + c.paise, 0),
+    triedPaise: tried,
+    savedPaise: paid === null ? null : tried - paid,
+    intentMandateId: `IM-${run.id.slice(0, 6).toUpperCase()}-v${run.mandate.version}`,
+    cartMandateId: run.authorization ? `CM-${run.authorization.id.slice(0, 6).toUpperCase()}` : null,
+    paidBy: run.paidBy ?? null,
+    autopay: run.mandate.autopay,
+    walletLinked: !!run.wallet,
     caught,
     approved: run.mandate.amendments.flatMap((a) => a.approved.map(({ label, paise }) => ({ label, paise }))),
-    paidPaise: run.authorization?.totalPaise ?? null,
+    paidPaise: paid,
     paidUsdCents: run.authorization?.totalUsdCents ?? null,
     inrPerUsd: run.authorization?.rate.inrPerUsd ?? null,
   };
