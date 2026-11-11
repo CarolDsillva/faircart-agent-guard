@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { LLMProvider } from '@faircart/agent-core';
 import { DEFAULT_GEMINI_MODEL, GeminiProvider } from './llm/gemini';
-import { PayPalRest } from './paypal/client';
+import { PayPalSdk } from './paypal/sdk';
 import { MockPayPal } from './paypal/mock';
 import type { PayPal, PayPalConfig } from './paypal/types';
 
@@ -32,7 +32,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
     sandbox = false;
   }
   const paypal = sandbox
-    ? new PayPalRest({ clientId: env.PAYPAL_CLIENT_ID!, clientSecret: env.PAYPAL_CLIENT_SECRET!, webhookId: env.PAYPAL_WEBHOOK_ID ?? '' })
+    ? new PayPalSdk({ clientId: env.PAYPAL_CLIENT_ID!, clientSecret: env.PAYPAL_CLIENT_SECRET!, webhookId: env.PAYPAL_WEBHOOK_ID ?? '' })
     : new MockPayPal();
 
   const name = env.LLM_PROVIDER ?? 'scripted';
