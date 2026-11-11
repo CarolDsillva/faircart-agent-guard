@@ -616,3 +616,187 @@ a {
     padding: 14px 16px 32px;
   }
 }
+
+/* ---- SkyHop (fictional airline) ---- */
+.sh {
+  --brand: #0b5cad;
+  --brand-soft: #e8f1fb;
+  --bg: #f2f5f9;
+  --deal: #c2410c;
+}
+.sh-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.sh-logo svg {
+  width: 20px;
+  height: 20px;
+  transform: rotate(45deg);
+}
+.sh-logo--sm {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.sh-logo--sm svg {
+  width: 16px;
+  height: 16px;
+}
+.sh-nav {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  font-size: 14px;
+  color: var(--muted);
+  padding-left: 22px;
+  border-left: 1px solid var(--line);
+}
+.sh-nav .is-on {
+  color: var(--ink);
+  font-weight: 700;
+}
+.sh-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 28px 12px;
+  background: #f1f4f8;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px;
+}
+.sh-search > span:not(.sh-swap) {
+  display: grid;
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  line-height: 1.25;
+}
+.sh-search small {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.sh-search b {
+  font-size: 14px;
+}
+.sh-swap {
+  color: var(--brand);
+  font-weight: 700;
+  padding: 0 4px;
+}
+.sh-results {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+.sh-results h1 {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+.sh-result {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--brand);
+  box-shadow: 0 0 0 1px var(--brand);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 16px 0 12px;
+}
+.sh-flight {
+  display: grid;
+  grid-template-columns: 150px 1fr 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.sh-airline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sh-airline b,
+.sh-time b {
+  display: block;
+}
+.sh-airline small,
+.sh-time small,
+.sh-dur small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.sh-time b {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.sh-dur {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.sh-dur i {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--line), var(--brand), var(--line));
+  border-radius: 2px;
+}
+.sh-fare {
+  border-left: 1px dashed var(--line);
+  padding-left: 18px;
+}
+.sh-fare__name {
+  font-weight: 700;
+  color: var(--brand);
+  font-size: 13.5px;
+}
+.sh-fare .dm-price {
+  margin-top: 2px;
+}
+.sh-scarcity {
+  color: var(--deal);
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-top: 6px;
+}
+.sh-fare .dm-deal {
+  margin-top: 8px;
+}
+.sh-includes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+.sh-includes span {
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+.dm-card .sh-flight {
+  padding: 8px 0 4px;
+}
+@media (max-width: 760px) {
+  .sh-result,
+  .sh-flight {
+    grid-template-columns: 1fr;
+  }
+  .sh-nav {
+    display: none;
+  }
+  .sh-search {
+    flex-wrap: wrap;
+    margin: 0 16px 10px;
+  }
+}

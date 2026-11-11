@@ -7,7 +7,9 @@ import { runAction } from './driver';
 import { mark, pointAt, type MarkTone } from './overlay';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
-export type Store = 'demomart' | 'fairmart';
+import { SCENARIOS, shopUrl, type Store } from './scenarios';
+
+export type { Store };
 export type Phase = 'idle' | 'linking' | 'running' | 'awaiting' | 'authorized' | 'paying' | 'paid' | 'stopped' | 'failed';
 
 export interface Entry {
@@ -51,12 +53,12 @@ function walletReply(popup: Window | null): Promise<{ approvalTokenId: string | 
   });
 }
 
-export const PRODUCT = { sku: 'DEMO-ATTA-5KG', title: 'Sunrise Chakki Atta 5 kg', price: 289 };
+
 
 const PACE_MS = 500;
 const MONEY = new Set(['basket_sneaking', 'drip_pricing', 'subscription_trap', 'forced_action']);
 
-/** FairCart's findings, drawn on the page where it found them. */
+/** PennyWise's findings, drawn on the page where it found them. */
 function showFindings(obs: Observation, findings: Finding[]) {
   const doc = obs.refs && findings.length ? findings.map((f) => (f.elementRef ? obs.refs.get(f.elementRef) : undefined)).find(Boolean)?.ownerDocument : undefined;
   if (!doc) return;
@@ -126,6 +128,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const [view, setView] = useState<RunView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [store, setStore] = useState<Store>('demomart');
+  const storeRef = useRef<Store>('demomart');
   const [autopay, setAutopay] = useState(false);
   const [walletLinked, setWalletLinked] = useState(false);
   /** Set when the browser blocked the PayPal pop-up: the UI offers a plain link instead. */
@@ -262,13 +265,13 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
 
   const autopayRef = useRef(false);
 
-  /** Human-not-present payment: DemoMart holds the money, FairCart checks the order, then it is captured. */
+  /** Human-not-present payment: the store holds the money, PennyWise checks the order, then it is captured. */
   const payAsAgent = async (id: string, authz: Authorization) => {
     setPhase('paying');
     push({ kind: 'pay', title: 'Your agent is paying with your linked PayPal. No pop-up: the signed mandates allow it.' });
     const v = await api.agentPay(authz);
     setView(v);
-    push({ kind: 'pay', title: `PayPal held, FairCart checked the order line by line, then captured US$${v.capture?.amount}.`, detail: `Order ${v.orderId} · Capture ${v.capture?.id}`, tone: 'pass' });
+    push({ kind: 'pay', title: `PayPal held the money, PennyWise checked the order line by line, then it was captured: US$${v.capture?.amount}.`, detail: `Order ${v.orderId} · Capture ${v.capture?.id}`, tone: 'pass' });
     setPhase('paid');
     const gen = generation.current;
     for (let i = 0; i < 10; i++) {
@@ -284,6 +287,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const reset = useCallback((s: Store) => {
     generation.current += 1;
     setStore(s);
+    storeRef.current = s;
     setPhase('idle');
     setRunId(null);
     setEntries([]);
@@ -298,7 +302,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setWalletUrl(null);
     autopayRef.current = false;
     taps.current = [];
-    if (frame.current) frame.current.src = `/shop.html?view=item&reset=1${s === 'fairmart' ? '&store=fairmart' : ''}`;
+    if (frame.current) frame.current.src = shopUrl(s);
   }, [frame]);
 
   const start = useCallback(
@@ -306,7 +310,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
       setError(null);
       try {
         const { runId: id } = await api.createRun({
-          want: { sku: PRODUCT.sku, title: PRODUCT.title, maxQuantity: 1 },
+          want: { sku: SCENARIOS[storeRef.current].product.sku, title: SCENARIOS[storeRef.current].product.title, maxQuantity: 1 },
           maxTotalPaise: Math.round(m.maxTotalRupees * 100),
           allowedFees: m.allowedFees as never,
           autopay: m.autopay,
@@ -317,7 +321,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         push({
           kind: 'human',
           title: `You signed intent mandate ${intentMandateId(id)}.`,
-          detail: `${PRODUCT.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
+          detail: `${SCENARIOS[storeRef.current].product.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
         });
         if (m.autopay) {
           setPhase('linking');
@@ -387,12 +391,12 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setPhase('stopped');
   }, [phase, push, runId]);
 
-  /** DemoMart creates the PayPal order; FairCart has already compared it line by line. */
+  /** The store creates the PayPal order; PennyWise compares it line by line before you approve. */
   const createOrder = useCallback(async () => {
     if (!authorization) throw new Error('No authorization');
     setPhase('paying');
     const { orderId } = await api.merchantCheckout(authorization);
-    push({ kind: 'pay', title: 'PayPal order created by DemoMart and checked by FairCart: it matches what you approved.', detail: `Order ${orderId}`, tone: 'pass' });
+    push({ kind: 'pay', title: `PayPal order created by ${SCENARIOS[storeRef.current].merchant} and checked by PennyWise: it matches what you approved.`, detail: `Order ${orderId}`, tone: 'pass' });
     return orderId;
   }, [authorization, push]);
 

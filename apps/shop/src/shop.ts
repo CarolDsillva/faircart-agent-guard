@@ -115,7 +115,7 @@ function footer(store: Store): string {
       <div><b>Help</b><span>Customer support</span><span>Returns &amp; refunds</span><span>Delivery areas</span></div>
       <div><b>Policies</b><span>Terms of use</span><span>Privacy</span><span>Cancellations</span></div>
     </div>
-    <p class="dm-foot__note">${b.name} is a fictional store made for the FairCart Agent Guard demo. Nothing here is for sale.</p>
+    <p class="dm-foot__note">${b.name} is a fictional store made for the PennyWise demo. Nothing here is for sale.</p>
   </footer>`;
 }
 

@@ -39,7 +39,7 @@ export function orderBody(a: Authorization, opts: { vaultId?: string } = {}): Or
       {
         invoice_id: a.id,
         custom_id: a.runId,
-        description: 'DemoMart order (FairCart Agent Guard demo)',
+        description: 'Order paid through PennyWise',
         amount: { currency_code: 'USD', value, breakdown: { item_total: { currency_code: 'USD', value } } },
         items: a.lines.map((l) => ({
           name: l.label,

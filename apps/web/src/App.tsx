@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type Config, type RunView } from './api';
 import { Ledger } from './Ledger';
 import { PayPalPay } from './PayPalPay';
-import { PRODUCT, useRun, type Entry, type MandateInput, type Store } from './useRun';
+import { SCENARIOS, shopUrl, type Scenario, type Store } from './scenarios';
+import { useRun, type Entry, type MandateInput } from './useRun';
 
 const FEES: { kind: string; label: string }[] = [
   { kind: 'delivery', label: 'Delivery' },
@@ -12,6 +13,19 @@ const FEES: { kind: string; label: string }[] = [
   { kind: 'platform', label: 'Platform fee' },
   { kind: 'convenience', label: 'Convenience fee' },
 ];
+
+type View = 'home' | 'run' | 'ledger';
+
+/** PennyWise's mark: a coin with a check, drawn rather than borrowed from anyone. */
+export function Mark({ size = 26 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
+      <circle cx="16" cy="16" r="15" fill="#0f5a43" />
+      <circle cx="16" cy="16" r="11.5" fill="none" stroke="#7fd1ae" strokeWidth="1.4" strokeDasharray="2 2.2" />
+      <path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#fff" strokeWidth="2.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function App() {
   const frame = useRef<HTMLIFrameElement>(null);
@@ -21,35 +35,44 @@ export function App() {
     api.config().then(setConfig).catch(() => setConfig(null));
   }, []);
 
-  const storeName = run.store === 'fairmart' ? 'FairMart' : 'DemoMart';
-  const [path, setPath] = useState('/atta/sunrise-chakki-atta-5kg');
+  const scenario = SCENARIOS[run.store];
+  const [path, setPath] = useState(scenario.paths.item);
   const onFrameLoad = () => {
     run.onFrameLoad();
-    const view = new URLSearchParams(frame.current?.contentWindow?.location.search ?? '').get('view');
-    setPath(view === 'basket' ? '/basket' : view === 'pay' ? '/checkout/payment' : '/atta/sunrise-chakki-atta-5kg');
+    const v = new URLSearchParams(frame.current?.contentWindow?.location.search ?? '').get('view');
+    setPath(SCENARIOS[run.store].paths[v === 'basket' || v === 'pay' ? v : 'item']);
   };
-  const busy = run.phase === 'running' || run.phase === 'paying';
-  const [view, setView] = useState<'run' | 'ledger'>('run');
+  const busy = run.phase === 'running' || run.phase === 'paying' || run.phase === 'linking';
+  const [view, setView] = useState<View>('home');
+
+  const choose = (s: Store) => {
+    run.reset(s);
+    setPath(SCENARIOS[s].paths.item);
+    setView('run');
+  };
 
   return (
     <div className="app">
       <header className="top">
-        <div className="brand">
-          <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 3 6v6c0 5 3.8 9.4 9 10 5.2-.6 9-5 9-10V6l-9-4Z" fill="currentColor" /><path d="m8 12 3 3 5-6" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </span>
-          <span className="brand__name">FairCart</span>
-          <span className="brand__product">Agent Guard</span>
-        </div>
+        <button className="brand" onClick={() => setView('home')} aria-label="PennyWise home">
+          <Mark />
+          <span className="brand__name">PennyWise</span>
+          <span className="brand__product">for PayPal</span>
+        </button>
         <nav className="views" aria-label="Views">
-          <button className={view === 'run' ? 'is-on' : ''} aria-current={view === 'run' ? 'page' : undefined} onClick={() => setView('run')}>
-            Agent run
-          </button>
-          <button className={view === 'ledger' ? 'is-on' : ''} aria-current={view === 'ledger' ? 'page' : undefined} onClick={() => setView('ledger')}>
-            Payments ledger
-          </button>
+          {(
+            [
+              ['home', 'Home'],
+              ['run', 'Agent run'],
+              ['ledger', 'Merchant fairness'],
+            ] as [View, string][]
+          ).map(([v, label]) => (
+            <button key={v} className={view === v ? 'is-on' : ''} aria-current={view === v ? 'page' : undefined} onClick={() => setView(v)}>
+              {label}
+            </button>
+          ))}
         </nav>
-        <p className="top__line">The AI shops. FairCart checks every charge. PayPal only moves the money you approved.</p>
+        <span className="top__spacer" />
         <div className="status" aria-live="polite">
           <span className={`status__item ${run.planner === 'backup' ? 'is-warn' : ''}`}>
             <i aria-hidden="true" />
@@ -62,19 +85,19 @@ export function App() {
         </div>
       </header>
 
+      {view === 'home' && <Home onChoose={choose} busy={busy} current={run.store} />}
       {view === 'ledger' && <Ledger />}
       <main className="split" hidden={view !== 'run'}>
         <section className="pane pane--store" aria-label="What the agent sees">
-          <div className="store-switch">
-            <span>Store</span>
-            <div className="seg" role="tablist" aria-label="Store">
-              {(['demomart', 'fairmart'] as Store[]).map((s) => (
-                <button key={s} role="tab" aria-selected={run.store === s} className={run.store === s ? 'is-on' : ''} disabled={busy} onClick={() => run.reset(s)}>
-                  {s === 'demomart' ? 'DemoMart' : 'FairMart'}
-                  <small>{s === 'demomart' ? 'full of tricks' : 'honest'}</small>
-                </button>
-              ))}
-            </div>
+          <div className="task-bar">
+            <span className="task-bar__cat">{scenario.category}</span>
+            <b>{scenario.task}</b>
+            <span className="muted">at {scenario.merchant}</span>
+            {!busy && run.phase === 'idle' && (
+              <button className="link" onClick={() => setView('home')}>
+                Change task
+              </button>
+            )}
           </div>
           <div className="browser">
             <div className="browser__bar">
@@ -85,17 +108,18 @@ export function App() {
               </span>
               <span className="browser__url">
                 <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z" fill="currentColor" /></svg>
-                {storeName.toLowerCase()}.example{path}
+                {scenario.domain}
+                {path}
               </span>
               <span className={`browser__agent ${busy ? 'is-live' : ''}`}>{busy ? 'Agent is browsing' : 'Agent idle'}</span>
             </div>
-            <iframe ref={frame} title={`${storeName} store, as the agent sees it`} src="/shop.html?view=item&reset=1" onLoad={onFrameLoad} />
+            <iframe ref={frame} title={`${scenario.merchant}, as the agent sees it`} src={shopUrl('demomart')} onLoad={onFrameLoad} />
           </div>
         </section>
 
         <section className="pane pane--run" aria-label="The run">
           {run.phase === 'idle' ? (
-            <MandateForm storeName={storeName} onSign={run.start} />
+            <MandateForm key={run.store} scenario={scenario} onSign={run.start} />
           ) : (
             <>
               <Timeline entries={run.entries} running={run.phase === 'running'} />
@@ -119,12 +143,12 @@ export function App() {
                 </section>
               )}
               {run.findings.length > 0 && <Findings findings={run.findings} />}
-              {run.phase === 'awaiting' && <AskHuman reasons={run.reasons} onApprove={run.approve} onStop={run.stop} />}
+              {run.phase === 'awaiting' && <AskHuman merchant={scenario.merchant} reasons={run.reasons} onApprove={run.approve} onStop={run.stop} />}
               {(run.phase === 'authorized' || run.phase === 'paying') && run.authorization && config && (
                 <section className="card card--pay">
                   <h2>Ready to pay {formatInr(run.authorization.totalPaise)}</h2>
                   <p className="muted">
-                    That's {formatUsd(run.authorization.totalUsdCents)} at the demo rate of ₹{run.authorization.rate.inrPerUsd} to US$1. DemoMart creates the PayPal order and FairCart checks it line by line before you approve.
+                    That's {formatUsd(run.authorization.totalUsdCents)} at the demo rate of ₹{run.authorization.rate.inrPerUsd} to US$1. {scenario.merchant} creates the PayPal order and PennyWise checks it line by line before you approve.
                   </p>
                   <ul className="lines">
                     {run.authorization.lines.map((l) => (
@@ -137,7 +161,7 @@ export function App() {
                   <PayPalPay config={config} createOrder={run.createOrder} onCaptured={run.captured} onError={run.payFailed} onCancel={run.payCancelled} />
                 </section>
               )}
-              {run.phase === 'paid' && run.view && <ReceiptCard view={run.view} storeName={storeName} simulated={config?.paypalMode !== 'sandbox'} />}
+              {run.phase === 'paid' && run.view && <ReceiptCard view={run.view} storeName={scenario.merchant} simulated={config?.paypalMode !== 'sandbox'} />}
               {run.phase === 'stopped' && <p className="callout">Stopped. Nothing was paid.</p>}
               {run.error && (
                 <p className="callout callout--error" role="alert">
@@ -145,9 +169,14 @@ export function App() {
                 </p>
               )}
               {run.phase !== 'running' && run.phase !== 'paying' && (
-                <button className="btn btn--ghost" onClick={() => run.reset(run.store)}>
-                  Start a new run
-                </button>
+                <div className="after-run">
+                  <button className="btn btn--ghost" onClick={() => run.reset(run.store)}>
+                    Run this task again
+                  </button>
+                  <button className="btn btn--ghost" onClick={() => setView('home')}>
+                    Pick another task
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -157,9 +186,80 @@ export function App() {
   );
 }
 
-function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: MandateInput) => void }) {
-  const [max, setMax] = useState(350);
-  const [fees, setFees] = useState<string[]>(['delivery']);
+function Home({ onChoose, busy, current }: { onChoose: (s: Store) => void; busy: boolean; current: Store }) {
+  const [saved, setSaved] = useState<{ blocked: number; count: number; runs: number } | null>(null);
+  useEffect(() => {
+    api
+      .ledger()
+      .then(({ rows }) => setSaved({ runs: rows.length, count: rows.reduce((n, r) => n + r.caught.length, 0), blocked: rows.reduce((n, r) => n + r.caught.reduce((s, c) => s + c.paise, 0), 0) }))
+      .catch(() => setSaved(null));
+  }, []);
+  return (
+    <div className="home">
+      <section className="hero">
+        <p className="hero__kicker">Checkout protection for people and their AI agents</p>
+        <h1>
+          Your AI can shop for you.
+          <br />
+          It shouldn't get tricked doing it.
+        </h1>
+        <p className="hero__lede">
+          You sign a mandate once. Your agent shops any store. PennyWise reads every checkout for dark patterns, like pre-ticked add-ons, sneaked fees and charges nobody explains, and lets PayPal move only the money you agreed to.
+        </p>
+        {saved && saved.runs > 0 && (
+          <p className="hero__stat">
+            <b>{formatInr(saved.blocked)}</b> in tricks blocked across {saved.runs} agent run{saved.runs === 1 ? '' : 's'} on this server
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="tasks-h">
+        <h2 id="tasks-h" className="home__h">Give the agent a task</h2>
+        <div className="tasks">
+          {(Object.values(SCENARIOS) as Scenario[]).map((s) => (
+            <article key={s.store} className={`task task--${s.store}`}>
+              <header>
+                <span className="task__cat">{s.category}</span>
+                <span className="task__merchant">{s.merchant}</span>
+              </header>
+              <h3>{s.task}</h3>
+              <p className="task__mandate">
+                {s.product.priceLabel} item · at most ₹{s.maxRupees.toLocaleString('en-IN')} · {s.fees.length ? `${s.fees.join(', ')} fee OK` : 'no extra fees'}
+              </p>
+              <ul className="task__tricks" aria-label={`What ${s.merchant} hides`}>
+                {s.tricks.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <button className="btn btn--primary" disabled={busy} onClick={() => onChoose(s.store)}>
+                {busy && current === s.store ? 'Running…' : 'Start this task'}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="how" aria-labelledby="how-h">
+        <h2 id="how-h" className="home__h">How a payment gets through</h2>
+        <ol>
+          <li>
+            <b>You sign an intent mandate.</b> What to buy, the most to spend, which fees are fine. Link PayPal once if the agent may pay on its own.
+          </li>
+          <li>
+            <b>The agent shops; PennyWise watches.</b> Every page is read for the 13 dark patterns India's CCPA guidelines name. Tricks are undone, or brought to you.
+          </li>
+          <li>
+            <b>Only a matching cart gets paid.</b> PennyWise signs a cart mandate, the store creates the PayPal order, PennyWise checks it line by line, and only then is it captured.
+          </li>
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+function MandateForm({ scenario, onSign }: { scenario: Scenario; onSign: (m: MandateInput) => void }) {
+  const [max, setMax] = useState(scenario.maxRupees);
+  const [fees, setFees] = useState<string[]>(scenario.fees);
   const [autopay, setAutopay] = useState(true);
   return (
     <form
@@ -169,20 +269,21 @@ function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: Man
         onSign({ maxTotalRupees: max, allowedFees: fees, autopay });
       }}
     >
-      <h2>Send an agent shopping</h2>
-      <p className="muted">It will buy from {storeName} for you. These rules are the only thing that lets money move, and only you can change them.</p>
+      <p className="mandate__kicker">Intent mandate</p>
+      <h2>{scenario.task}</h2>
+      <p className="muted">The agent will shop {scenario.merchant} for you. These rules are the only thing that lets money move, and only you can change them.</p>
       <label className="field">
         <span>Buy</span>
-        <select disabled value={PRODUCT.sku}>
-          <option value={PRODUCT.sku}>
-            {PRODUCT.title}, ₹{PRODUCT.price}
+        <select disabled value={scenario.product.sku}>
+          <option value={scenario.product.sku}>
+            {scenario.product.title}, {scenario.product.priceLabel}
           </option>
         </select>
       </label>
       <label className="field">
         <span>Spend at most</span>
         <span className="money-input">
-          ₹<input type="number" min={1} max={100000} value={max} onChange={(e) => setMax(Number(e.target.value))} required />
+          ₹<input type="number" min={1} max={1000000} value={max} onChange={(e) => setMax(Number(e.target.value))} required />
         </span>
       </label>
       <fieldset className="field">
@@ -196,12 +297,12 @@ function MandateForm({ storeName, onSign }: { storeName: string; onSign: (m: Man
           ))}
         </div>
       </fieldset>
-      <p className="small muted">No add-ons, passes or subscriptions, ever. The agent can ask you about anything else.</p>
+      <p className="small muted">No add-ons, passes, insurance or subscriptions, ever. The agent can ask you about anything else.</p>
       <label className="autopay">
         <input type="checkbox" checked={autopay} onChange={(e) => setAutopay(e.target.checked)} />
         <span>
           <b>Let the agent pay on its own, inside these rules</b>
-          <small>You link PayPal once. The agent pays without a pop-up only when FairCart signs a cart that matches. Anything outside these rules still comes back to you.</small>
+          <small>You link PayPal once. The agent pays without a pop-up only when PennyWise signs a cart that matches. Anything outside these rules still comes back to you.</small>
         </span>
       </label>
       <button className="btn btn--primary" type="submit">
@@ -267,7 +368,7 @@ const WHO: Record<Entry['kind'], string> = { action: 'Agent', guard: 'Checker', 
 function Findings({ findings }: { findings: { id: string; title: string; category: string }[] }) {
   return (
     <section className="panel panel--findings">
-      <h2 className="panel__title">FairCart noticed</h2>
+      <h2 className="panel__title">PennyWise noticed</h2>
       <ul className="findings">
         {findings.map((f) => (
           <li key={f.id}>{f.title}</li>
@@ -277,7 +378,7 @@ function Findings({ findings }: { findings: { id: string; title: string; categor
   );
 }
 
-function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove: (a: Approval[]) => void; onStop: () => void }) {
+function AskHuman({ merchant, reasons, onApprove, onStop }: { merchant: string; reasons: Reason[]; onApprove: (a: Approval[]) => void; onStop: () => void }) {
   const fees = reasons.filter((r) => r.code === 'FEE_NOT_ALLOWED' && r.subject && r.paise !== undefined);
   const other = reasons.filter((r) => !fees.includes(r));
   const [picked, setPicked] = useState<string[]>(fees.map((f) => f.subject!));
@@ -286,7 +387,7 @@ function AskHuman({ reasons, onApprove, onStop }: { reasons: Reason[]; onApprove
   return (
     <section className="card card--ask" aria-live="assertive">
       <h2>The agent needs you</h2>
-      <p>DemoMart added charges your instructions don't allow. The agent can't approve them; only you can.</p>
+      <p>{merchant} added charges your mandate doesn't allow. The agent can't approve them; only you can.</p>
       {fees.length > 0 && (
         <ul className="approve">
           {fees.map((r) => (
@@ -340,7 +441,7 @@ function ReceiptCard({ view, storeName, simulated }: { view: RunView; storeName:
       </p>
       {r.caught.length > 0 && (
         <>
-          <p className="receipt__head">Blocked by FairCart</p>
+          <p className="receipt__head">Blocked by PennyWise</p>
           <ul>
             {r.caught.map((c) => (
               <li key={c.label}>

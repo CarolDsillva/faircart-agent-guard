@@ -33,5 +33,5 @@ if (existsSync(dist)) {
 }
 
 serve({ fetch: app.fetch, port: cfg.port }, (info) => {
-  console.log(`FairCart Agent Guard on http://localhost:${info.port} (planner: ${cfg.providerName}, PayPal: ${cfg.paypalConfig.mode})`);
+  console.log(`PennyWise on http://localhost:${info.port} (planner: ${cfg.providerName}, PayPal: ${cfg.paypalConfig.mode})`);
 });

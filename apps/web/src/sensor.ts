@@ -15,7 +15,7 @@ export interface Observation {
 export function observeDocument(doc: Document, url: string, pageId: string, seq: number): Observation {
   const refs = new RefRegistry();
   const x = extractPage(doc, new URL(url), refs);
-  if (!x) throw new Error(`FairCart doesn't recognise ${url} as a store page`);
+  if (!x) throw new Error(`PennyWise doesn't recognise ${url} as a store page`);
   const snapshot = toSnapshot(x, { snapshotId: `s-${seq}`, journeyId: 'pending', capturedAt: new Date().toISOString() });
   return { seq, pageId, url, snapshot: { ...snapshot, controls: snapshot.controls ?? [], cues: snapshot.cues ?? [] }, bill: x.bill, refs };
 }

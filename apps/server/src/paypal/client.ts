@@ -45,7 +45,7 @@ export class PayPalRest implements PayPal {
     const r = await this.call<R>(
       'POST',
       '/v3/vault/setup-tokens',
-      { payment_source: { paypal: { usage_type: 'MERCHANT', customer_type: 'CONSUMER', experience_context: { return_url: urls.returnUrl, cancel_url: urls.cancelUrl, brand_name: 'FairCart Agent Wallet', shipping_preference: 'NO_SHIPPING' } } } },
+      { payment_source: { paypal: { usage_type: 'MERCHANT', customer_type: 'CONSUMER', experience_context: { return_url: urls.returnUrl, cancel_url: urls.cancelUrl, brand_name: 'PennyWise', shipping_preference: 'NO_SHIPPING' } } } },
       { 'PayPal-Request-Id': requestId },
     );
     const approve = r.links.find((l) => l.rel === 'approve')?.href;

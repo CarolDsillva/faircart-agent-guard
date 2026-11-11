@@ -1,16 +1,18 @@
-# FairCart Agent Guard
+# PennyWise for PayPal
+
+*Checkout protection for people and their AI agents. Built on PennyWise, an open dark-pattern engine for Indian e-commerce.*
 
 **AI agents are starting to shop for us. Stores are built to trick shoppers, and an agent is easier to trick than a person.** It won't notice a protection plan that's already ticked, a fee that only appears at payment, ₹10 in the total that no line explains, or text on the page written to manipulate it.
 
-FairCart Agent Guard is a **mandate guard for agent payments**: the layer that decides when an AI agent may pay with your PayPal, and lets it pay **on its own** only when the purchase matches what you signed.
+PennyWise is a **mandate guard for agent payments**: the layer that decides when an AI agent may pay with your PayPal, and lets it pay **on its own** only when the purchase matches what you signed.
 
-> **The AI proposes. FairCart sees. Code decides. PayPal moves only the money you approved.**
+> **The AI proposes. PennyWise sees. Code decides. PayPal moves only the money you approved.**
 
-In the demo, you sign an **intent mandate** ("5 kg atta, at most ₹350, delivery fees only") and link PayPal once. An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **₹471** for a **₹289** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the ₹10 nobody explained. It asks you about the two fees it can't remove. When the bill matches, FairCart signs a **cart mandate** and the agent pays by itself, with no pop-up. PayPal holds **₹313**, FairCart checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried ₹471. You paid ₹313. You saved ₹158.*
+In the demo, you sign an **intent mandate** ("5 kg atta, at most ₹350, delivery fees only") and link PayPal once. An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **₹471** for a **₹289** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the ₹10 nobody explained. It asks you about the two fees it can't remove. When the bill matches, PennyWise signs a **cart mandate** and the agent pays by itself, with no pop-up. PayPal holds **₹313**, PennyWise checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried ₹471. You paid ₹313. You saved ₹158.*
 
 ### Why this should exist inside PayPal
 
-Agentic commerce needs a trusted party that knows what the user agreed to and sees what the merchant is charging. That is the wallet. FairCart shows what a wallet-side guard does:
+Agentic commerce needs a trusted party that knows what the user agreed to and sees what the merchant is charging. That is the wallet. PennyWise shows what a wallet-side guard does:
 - It turns the user's words into a signed **intent mandate**.
 - It reads the checkout the agent sees.
 - It signs a **cart mandate** only for a matching cart.
@@ -19,6 +21,15 @@ Agentic commerce needs a trusted party that knows what the user agreed to and se
 The vocabulary follows the Agent Payments Protocol (AP2), which PayPal supports: intent mandate, cart mandate, human-present and human-not-present purchases.
 
 Built for the PayPal AI Hackathon (Devpost). MIT licensed.
+
+## Two industries, one engine
+
+The demo has three tasks on the home screen:
+- **Groceries, at DemoMart:** a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, and ₹10 nobody explains. It tries to charge ₹471 for a ₹289 product.
+- **Flights, at SkyHop:** pre-ticked travel insurance, a Flexi Pass and a seat added for you, a convenience fee on the last page, and "only 2 seats left" pressure. It tries to charge ₹7,945 for a ₹5,849 fare.
+- **FairMart:** an honest control store. PennyWise stays quiet and the agent pays.
+
+The same reader, rule engine and checker handle both industries. Nothing is written for a particular store. While the agent works, you see its cursor tap the page, PennyWise box each trick it finds, and the checker mark the exact bill lines it blocks.
 
 ## Try it
 
@@ -38,10 +49,10 @@ FairMart is the control: same product, no tricks. The checker passes it first ti
 ```
  Browser (your environment)                         Server (Node 22, Hono, one service)
 ┌─────────────────────────────────────────┐       ┌─────────────────────────────────────────────┐
-│ Store iframe (DemoMart / FairMart)      │       │ FairCart side                                │
+│ Store iframe (DemoMart / FairMart)      │       │ PennyWise side                                │
 │   ▲ act by control id   │ live page     │       │  Run state, signed instructions, audit log   │
 │ ┌─┴────────┐  ┌─────────▼────────────┐  │       │  Rule engine re-run on the journey           │
-│ │ Driver   │  │ Sensor: FairCart's   │──obs──►  │  Planner: Gemini, one call per page          │
+│ │ Driver   │  │ Sensor: PennyWise's   │──obs──►  │  Planner: Gemini, one call per page          │
 │ │          │  │ adapter → snapshot   │  │       │    (backup planner if the AI is unavailable) │
 │ └──────────┘  └──────────────────────┘  │◄─plan─│  Checker → PASS + signed authorization       │
 │ Console: instructions · timeline ·      │       │  Order check: PayPal order == authorization  │
@@ -67,19 +78,19 @@ FairMart is the control: same product, no tricks. The checker passes it first ti
 
 ### PayPal
 
-- **DemoMart is the merchant of record.** FairCart never receives money.
-- **Agent wallet (human-not-present):** when you sign with autopay, you link PayPal once through **Vault v3** (setup token → your approval → payment token). After the checker signs the cart mandate, DemoMart creates the order with `payment_source.paypal.vault_id` and **`intent: AUTHORIZE`**, so PayPal only *holds* the money. FairCart reads the order back and compares it with the cart mandate. Only then is the authorization captured; on any mismatch the hold is **voided**. No pop-up, and no way for the agent to pay outside the mandates.
+- **DemoMart is the merchant of record.** PennyWise never receives money.
+- **Agent wallet (human-not-present):** when you sign with autopay, you link PayPal once through **Vault v3** (setup token → your approval → payment token). After the checker signs the cart mandate, DemoMart creates the order with `payment_source.paypal.vault_id` and **`intent: AUTHORIZE`**, so PayPal only *holds* the money. PennyWise reads the order back and compares it with the cart mandate. Only then is the authorization captured; on any mismatch the hold is **voided**. No pop-up, and no way for the agent to pay outside the mandates.
 - The checker's PASS produces an **HMAC-signed, single-use authorization** (30 minutes to create the order). DemoMart's agent-checkout endpoint verifies it and creates an **Orders v2** order with every line as an item (`PayPal-Request-Id` = authorization id, so retries are idempotent).
-- **FairCart then reads the PayPal order back** and compares every item, amount and the currency with the authorization before the buyer can approve. A mismatch stops the run.
+- **PennyWise then reads the PayPal order back** and compares every item, amount and the currency with the authorization before the buyer can approve. A mismatch stops the run.
 - After the buyer approves (JS SDK buttons), DemoMart captures, the captured amount is checked again, and a **verified `PAYMENT.CAPTURE.COMPLETED` webhook** marks the run settled.
-- FairCart is designed to sit in front of agents built on PayPal's tools, including the PayPal Agent Toolkit. This demo calls the Orders v2 REST API directly from code, because the guard needs exact cents, per-order idempotency and `invoice_id`.
+- PennyWise is designed to sit in front of agents built on PayPal's tools, including the PayPal Agent Toolkit. This demo calls the Orders v2 REST API directly from code, because the guard needs exact cents, per-order idempotency and `invoice_id`.
 
 ### Payments ledger (AG Grid)
 
 The console's **Payments ledger** view is built with **AG Grid** (Community, MIT). It shows every finished agent run on the server:
-- what the store tried to charge, what PayPal moved (₹ and US$) and what FairCart saved;
+- what the store tried to charge, what PayPal moved (₹ and US$) and what PennyWise saved;
 - who approved the payment (the agent wallet, or you in PayPal), the intent and cart mandate ids, and the PayPal order;
-- a second grid of every charge FairCart blocked, by dark pattern ("Pre-ticked add-on", "Added without your choice", "Unexplained amount").
+- a second grid of every charge PennyWise blocked, by dark pattern ("Pre-ticked add-on", "Added without your choice", "Unexplained amount").
 
 It has totals cards, a pinned totals row, sorting, filtering and CSV export.
 
@@ -92,7 +103,7 @@ Orders and payments (create, get, authorize, capture, capture authorization, voi
 ### AI
 
 - **Gemini** (`gemini-3.5-flash-lite` by default; set `LLM_MODEL` to change it) plans one page at a time through a single forced function call, `submit_plan`. Every action is validated: it must use a tool from a fixed list and a control id that exists on the page.
-- If Gemini is unavailable (rate limits, overload, timeouts), a deterministic **backup planner (no AI)** finishes the run from FairCart's reading of the page. The UI labels it clearly. It knows nothing about DemoMart: it unticks paid add-ons, declines pop-ups, removes what wasn't asked for, and questions unexplained amounts.
+- If Gemini is unavailable (rate limits, overload, timeouts), a deterministic **backup planner (no AI)** finishes the run from PennyWise's reading of the page. The UI labels it clearly. It knows nothing about DemoMart: it unticks paid add-ons, declines pop-ups, removes what wasn't asked for, and questions unexplained amounts.
 
 ## Run it locally
 
@@ -136,7 +147,7 @@ Production (what Render runs): `npm run build:web` then `npm start`. One Node se
 
 - The agent wallet's payment token lives in server memory for the run (30 minutes). A real wallet would keep it with PayPal and the customer.
 - The server trusts the browser's **reading of the page**, just as a careful human trusts what they see. It does not trust the browser's findings, verdicts, amounts or instructions: it re-runs the rule engine, re-adds the bill, owns your instructions, and checks the PayPal order itself.
-- In this demo, FairCart reads the PayPal order with the same sandbox app the store uses, standing in for the order details PayPal shows the payer.
+- In this demo, PennyWise reads the PayPal order with the same sandbox app the store uses, standing in for the order details PayPal shows the payer.
 - Runs live in server memory for 30 minutes. A restart ends them, and the console offers a new run.
 - The stores are fictional practice stores. Real retailers are out of scope for the agent; the browser extension below reads them for people.
 
@@ -152,7 +163,7 @@ Production (what Render runs): `npm run build:web` then `npm start`. One Node se
 | `apps/server` | runs API, payments ledger API, DemoMart merchant API, PayPal client (APIMatic-generated PayPal Server SDK), Gemini provider |
 | `apps/web` | the run console, the AG Grid payments ledger and the store pages |
 | `apps/shop` | DemoMart and FairMart |
-| `apps/extension` | the FairCart Chrome extension, where this started |
+| `apps/extension` | the FairCart Chrome extension, where this started (the same engine, for people shopping on real sites) |
 
 ---
 
