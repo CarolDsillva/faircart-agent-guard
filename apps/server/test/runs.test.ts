@@ -249,3 +249,41 @@ describe('receipt counts an unexplained amount the agent disputed before checkin
     expect(r.caught).toEqual([{ label: 'Unexplained amount in the total', paise: 1000 }]);
   });
 });
+
+describe('SkyHop flights through the same checker', () => {
+  const FLIGHT_MANDATE = { mandate: { want: { sku: 'SH204-BLR-DEL-20261114', title: 'Flight BLR → DEL · SH 204 · Fri 14 Nov', maxQuantity: 1 }, maxTotalPaise: 700000, allowedFees: [] } };
+
+  it('blocks insurance, pass, seat and convenience fee; pays ₹6,248 once the fee is approved', async () => {
+    const { call } = setup([checkoutPlan, checkoutPlan, checkoutPlan]);
+    const id = (await call('POST', '/api/runs', FLIGHT_MANDATE)).json.runId;
+    const sky = initialState('skyhop');
+
+    await call('POST', `/api/runs/${id}/observe`, observation('skyhop', 'pay', sky, { pageId: 'pay' }));
+    let g = await call('POST', `/api/runs/${id}/checkout`);
+    expect(g.json.reasons.map((r: any) => [r.code, r.subject ?? null, r.fixable]).sort()).toEqual(
+      [
+        ['FEE_NOT_ALLOWED', 'Convenience fee', false],
+        ['FEE_NOT_ALLOWED', 'Seat selection fee (14C)', true],
+        ['OVER_BUDGET', null, false],
+        ['UNREQUESTED_ITEM', 'Flexi Pass (date change)', true],
+        ['UNREQUESTED_ITEM', 'Travel insurance', true],
+      ].sort(),
+    );
+    expect(g.json.state).toBe('shopping');
+
+    const bare = { ...sky, protection: false, pass: false, seat: false };
+    await call('POST', `/api/runs/${id}/observe`, observation('skyhop', 'pay', bare, { pageId: 'pay' }));
+    g = await call('POST', `/api/runs/${id}/checkout`);
+    expect(g.json).toMatchObject({ verdict: 'BLOCK', state: 'awaiting_human' });
+
+    await call('POST', `/api/runs/${id}/amend`, { approved: [{ label: 'Convenience fee', kind: 'convenience', paise: 39900 }] });
+    await call('POST', `/api/runs/${id}/observe`, observation('skyhop', 'pay', bare, { pageId: 'pay' }));
+    g = await call('POST', `/api/runs/${id}/checkout`);
+    expect(g.json.verdict).toBe('PASS');
+    expect(g.json.authorization.totalPaise).toBe(624800);
+    expect(g.json.authorization.lines.map((l: any) => l.label)).toEqual(['Flight BLR → DEL · SH 204 · Fri 14 Nov', 'Convenience fee']);
+    const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
+    expect(r.triedPaise).toBe(794500);
+    expect(r.savedPaise).toBe(169700);
+  });
+});

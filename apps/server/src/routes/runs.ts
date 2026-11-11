@@ -62,6 +62,14 @@ export function runView(run: Run) {
   };
 }
 
+const STORE_NAMES: Record<string, string> = { fairmart: 'FairMart', skyhop: 'SkyHop' };
+
+/** The page offers "Remove <first word of the line>". */
+function removable(controls: { label: string }[], label: string): boolean {
+  const first = label.toLowerCase().split(/[^a-z0-9]+/)[0] ?? '';
+  return first.length > 2 && controls.some((c) => /^remove\b/i.test(c.label) && c.label.toLowerCase().includes(first));
+}
+
 /** "Add 1-year freshness protection for ₹49" → "1-year freshness protection". */
 function addOnName(label: string): string {
   return label.replace(/^\s*(add|include|get)\s+/i, '').replace(/\s+(for|at|@)\s+₹\s?[\d,.]+\s*$/i, '').trim() || label;
@@ -148,13 +156,15 @@ export function runRoutes(deps: RunDeps) {
     // Findings use the journey (what was shown earlier on this page counts); planning and checking use the live page.
     const { findings } = evaluate({ snapshot: added.current, journey: added.earlier, taps: journey.taps }, CORE);
     run.last = { snapshot: snap, bill: body.bill, findings };
-    run.store = new URL(body.url).searchParams.get('store') === 'fairmart' ? 'FairMart' : 'DemoMart';
+    run.store = STORE_NAMES[new URL(body.url).searchParams.get('store') ?? ''] ?? 'DemoMart';
     if (added.current.stage === 'checkout' && body.bill?.displayedTotal != null) run.lastCheckoutPaise = toPaise(body.bill.displayedTotal);
     for (const ctl of snap.controls) {
       if (ctl.role === 'add_on' && ctl.checked === true && ctl.paidAmount) store.noteCaught(run, `x:${toPaise(ctl.paidAmount)}`, addOnName(ctl.label), toPaise(ctl.paidAmount), false, 'Pre-ticked add-on');
     }
     for (const row of body.bill?.rows ?? []) {
       if ((row.kind === 'service' || row.kind === 'membership') && row.amount) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true, 'Added without your choice');
+      // A fee the store lets you remove is an add-on in disguise (a seat "fee" you never picked).
+      else if (row.kind === 'fee' && row.amount && removable(snap.controls, row.label)) store.noteCaught(run, `x:${toPaise(row.amount)}`, row.label, toPaise(row.amount), true, 'Added without your choice');
     }
     // For the receipt only (the checker re-adds the bill itself): an amount no line explains.
     if (snap.stage === 'checkout' && body.bill?.difference && body.bill.difference > 0) {

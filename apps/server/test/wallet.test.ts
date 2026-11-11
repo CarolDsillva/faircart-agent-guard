@@ -115,7 +115,7 @@ describe('payments ledger', () => {
   it('records stopped runs too, with the charges caught before stopping', async () => {
     const { call, runId } = await passed({ autopay: false });
     await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'basket', initialState('demomart')));
-    await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'pay', { protection: false, pass: false, disputed: true }, { pageId: 'pay' }));
+    await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'pay', { protection: false, pass: false, seat: false, disputed: true }, { pageId: 'pay' }));
     await call('POST', `/api/runs/${runId}/checkout`);
     await call('POST', `/api/runs/${runId}/amend`, { stop: true });
     const row = (await call('GET', '/api/ledger')).json.rows[0];

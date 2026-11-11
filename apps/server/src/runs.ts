@@ -54,7 +54,7 @@ export interface Run {
   /** Paid extras and unexplained amounts the store put in front of the agent, keyed so each counts once. */
   caught: Map<string, { label: string; paise: number; fromBill: boolean; pattern: string }>;
   /** Which practice store the agent shopped, from the page URL. */
-  store?: 'DemoMart' | 'FairMart';
+  store?: string;
   error?: string;
   audit: AuditEntry[];
   touchedAt: number;

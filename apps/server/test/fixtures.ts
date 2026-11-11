@@ -8,7 +8,7 @@ export function observation(store: Store, view: View, s: ShopState, opts: { page
   document.documentElement.innerHTML = `<head></head><body>${renderView(store, view, s)}</body>`;
   if (opts.help) document.querySelector<HTMLElement>('[data-help-panel]')!.hidden = false;
   if (opts.popup) document.querySelector<HTMLElement>('.dm-modal')!.hidden = false;
-  const url = `http://localhost:5173/shop.html?view=${view}${store === 'fairmart' ? '&store=fairmart' : ''}`;
+  const url = `http://localhost:5173/shop.html?view=${view}${store === 'demomart' ? '' : `&store=${store}`}`;
   const x = extractPage(document, new URL(url), new RefRegistry())!;
   seq += 1;
   return {
