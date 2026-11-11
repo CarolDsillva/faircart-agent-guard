@@ -13,7 +13,9 @@
     "@faircart/guard": "0.1.0",
     "@faircart/money": "0.1.0",
     "@faircart/schemas": "0.1.0",
-    "@faircart/shop": "0.1.0"
+    "@faircart/shop": "0.1.0",
+    "ag-grid-community": "^36.3.0",
+    "ag-grid-react": "^36.3.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

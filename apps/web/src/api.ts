@@ -59,6 +59,25 @@ export interface RunView {
   receipt: Receipt;
 }
 
+export interface LedgerRow {
+  runId: string;
+  at: string | null;
+  store: string | null;
+  state: RunState;
+  planner: 'ai' | 'backup';
+  triedPaise: number;
+  paidPaise: number | null;
+  savedPaise: number | null;
+  paidUsdCents: number | null;
+  paidBy: 'buyer' | 'agent' | null;
+  approved: { label: string; paise: number }[];
+  caught: { label: string; paise: number; pattern: string }[];
+  intentMandateId: string;
+  cartMandateId: string | null;
+  orderId: string | null;
+  error: string | null;
+}
+
 export interface Config {
   paypalClientId: string;
   paypalMode: 'mock' | 'sandbox';
@@ -74,6 +93,7 @@ export const api = {
   amend: (runId: string, approved: Approval[]) => call<{ state: RunState; mandateVersion: number }>('POST', `/api/runs/${runId}/amend`, { approved }),
   stop: (runId: string) => call<{ state: RunState }>('POST', `/api/runs/${runId}/amend`, { stop: true }),
   run: (runId: string) => call<RunView>('GET', `/api/runs/${runId}`),
+  ledger: () => call<{ rows: LedgerRow[] }>('GET', '/api/ledger'),
   merchantCheckout: (authorization: Authorization) => call<{ orderId: string; state: RunState }>('POST', '/shop/api/checkout', { authorization }),
   capture: (runId: string, orderId: string) => call<RunView>('POST', '/shop/api/capture', { runId, orderId }),
   walletSetup: (runId: string, returnUrl: string) => call<{ setupTokenId: string; approveUrl: string }>('POST', `/api/runs/${runId}/wallet/setup`, { returnUrl }),

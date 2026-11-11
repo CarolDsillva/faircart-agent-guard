@@ -2,6 +2,7 @@ import type { Approval, Reason } from '@faircart/guard';
 import { formatInr, formatUsd } from '@faircart/money';
 import { useEffect, useRef, useState } from 'react';
 import { api, type Config, type RunView } from './api';
+import { Ledger } from './Ledger';
 import { PayPalPay } from './PayPalPay';
 import { PRODUCT, useRun, type Entry, type MandateInput, type Store } from './useRun';
 
@@ -28,6 +29,7 @@ export function App() {
     setPath(view === 'basket' ? '/basket' : view === 'pay' ? '/checkout/payment' : '/atta/sunrise-chakki-atta-5kg');
   };
   const busy = run.phase === 'running' || run.phase === 'paying';
+  const [view, setView] = useState<'run' | 'ledger'>('run');
 
   return (
     <div className="app">
@@ -39,6 +41,14 @@ export function App() {
           <span className="brand__name">FairCart</span>
           <span className="brand__product">Agent Guard</span>
         </div>
+        <nav className="views" aria-label="Views">
+          <button className={view === 'run' ? 'is-on' : ''} aria-current={view === 'run' ? 'page' : undefined} onClick={() => setView('run')}>
+            Agent run
+          </button>
+          <button className={view === 'ledger' ? 'is-on' : ''} aria-current={view === 'ledger' ? 'page' : undefined} onClick={() => setView('ledger')}>
+            Payments ledger
+          </button>
+        </nav>
         <p className="top__line">The AI shops. FairCart checks every charge. PayPal only moves the money you approved.</p>
         <div className="status" aria-live="polite">
           <span className={`status__item ${run.planner === 'backup' ? 'is-warn' : ''}`}>
@@ -52,7 +62,8 @@ export function App() {
         </div>
       </header>
 
-      <main className="split">
+      {view === 'ledger' && <Ledger />}
+      <main className="split" hidden={view !== 'run'}>
         <section className="pane pane--store" aria-label="What the agent sees">
           <div className="store-switch">
             <span>Store</span>
