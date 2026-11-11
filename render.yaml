@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: faircart-agent-guard
+    name: pennywise-for-paypal
     runtime: node
     plan: starter
     buildCommand: npm ci && npm run build:web
