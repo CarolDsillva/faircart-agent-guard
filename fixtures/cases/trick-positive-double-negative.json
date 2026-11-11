@@ -1,0 +1,33 @@
+{
+  "id": "trick-positive-double-negative",
+  "description": "Checkbox with a double negative.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s40",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "checkout",
+      "capturedAt": "2026-10-24T10:40:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "controls": [
+        {
+          "id": "c-wa",
+          "kind": "checkbox",
+          "label": "Uncheck to not stop receiving offers on WhatsApp",
+          "role": "consent",
+          "checked": true
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": [
+      "TRICK-01"
+    ]
+  }
+}

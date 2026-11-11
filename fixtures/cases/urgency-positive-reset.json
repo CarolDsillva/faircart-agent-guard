@@ -1,0 +1,68 @@
+{
+  "id": "urgency-positive-reset",
+  "description": "Countdown for the same offer goes from 10 min back up to 60 min after reload.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s17",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:17:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Headphones",
+        "retailerSku": "SKU-2",
+        "variantLabel": "5 kg"
+      },
+      "cues": [
+        {
+          "id": "c1",
+          "kind": "countdown",
+          "text": "Deal ends in 59:59",
+          "value": 3599,
+          "cueKey": "countdown:deal",
+          "offerRef": "deal-7"
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s18",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "product",
+        "capturedAt": "2026-10-24T10:18:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "product": {
+          "title": "Headphones",
+          "retailerSku": "SKU-2",
+          "variantLabel": "5 kg"
+        },
+        "cues": [
+          {
+            "id": "c1",
+            "kind": "countdown",
+            "text": "Deal ends in 10:00",
+            "value": 600,
+            "cueKey": "countdown:deal",
+            "offerRef": "deal-7"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "fired": [
+      "URG-01"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$comment": "Field defaults from packages/schemas (zod). The Kotlin engine applies these; a TS test asserts they match zod parse output for every fixture.",
+  "EvaluationContext": { "journey": [], "taps": [], "sensitivity": "standard" },
+  "ScreenSnapshot": { "prices": [], "fees": [], "lineItems": [], "controls": [], "cues": [], "cards": [], "total": null },
+  "Product": { "variant": {}, "condition": "unknown" },
+  "FeeFact": { "mandatory": null, "context": "line" },
+  "LineItem": { "quantity": 1, "origin": "unknown" },
+  "ControlFact": { "checked": null },
+  "CueFact": { "value": null },
+  "ListingCard": { "sponsored": "unknown" },
+  "Membership": { "cadence": null, "trial": false, "cancelRouteVisible": null, "enrolled": false },
+  "Style": { "fontWeight": 400 }
+}

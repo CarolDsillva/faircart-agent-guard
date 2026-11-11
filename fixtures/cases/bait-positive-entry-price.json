@@ -1,0 +1,59 @@
+{
+  "id": "bait-positive-entry-price",
+  "description": "Listing card said ₹499; product page says ₹649 for the same SKU.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s29",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:29:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Olive oil 1 L",
+        "retailerSku": "SKU-9",
+        "variantLabel": "5 kg"
+      },
+      "prices": [
+        {
+          "kind": "listed",
+          "amount": 649
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s30",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "listing",
+        "capturedAt": "2026-10-24T10:30:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "cards": [
+          {
+            "id": "card-9",
+            "retailerSku": "SKU-9",
+            "title": "Olive oil 1 L",
+            "price": 499,
+            "variantLabel": "1 L",
+            "sponsored": "no"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "fired": [
+      "BAIT-01"
+    ]
+  }
+}

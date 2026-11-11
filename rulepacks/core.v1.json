@@ -1,0 +1,460 @@
+{
+  "schemaVersion": 1,
+  "packId": "faircart-core",
+  "version": "1.0.0",
+  "lexicons": {
+    "shame": [
+      "\\bi(['’]ll| will)\\s+(pay|miss|lose)\\s+(more|out|savings|the savings)\\b",
+      "\\bno,?\\s+i\\s+(don['’]t|do not)\\s+(care|want to save|like (saving|discounts|deals))",
+      "\\bi\\s+(prefer|like|want)\\s+(to\\s+)?(pay(ing)?\\s+(full price|more)|miss(ing)?\\s+(out|savings))",
+      "\\bi(['’]m| am)\\s+(ok|okay|fine)\\s+(with\\s+)?(paying more|risking|being unprotected)",
+      "\\bdon['’]t care about (my )?(safety|protection|family|savings)",
+      "\\b(main|mai)\\s+(zyada|jyada|zada)\\s+(pay|paise)\\s+(karunga|karungi|dunga|dungi)"
+    ],
+    "double_negative": [
+      "\\buncheck\\s+(this\\s+|the\\s+box\\s+)?to\\s+(not|stop)\\b",
+      "\\b(don['’]t|do not)\\s+(uncheck|untick|unsubscribe|opt out|not)\\b",
+      "\\bnot\\s+(opt|unsubscribe)\\s+(out|from)\\b",
+      "\\bdo not\\s+(stop|prevent)\\s+(sending|receiving|me)\\b"
+    ]
+  },
+  "rules": [
+    {
+      "id": "URG-01",
+      "category": "false_urgency",
+      "subcategory": "countdown_reset",
+      "tags": ["misleading_scarcity"],
+      "rationale": "A countdown for the same offer should only go down. If it goes back up without the offer changing, the deadline is probably not real.",
+      "forEach": "cues",
+      "when": { "all": [ { "eq": [ { "var": "item.kind" }, "countdown" ] }, { "gte": [ { "var": "item.resetCount" }, 1 ] } ] },
+      "requires": { "gte": [ { "var": "item.observations" }, 2 ] },
+      "emit": {
+        "title": "Countdown may not be genuine",
+        "summary": "The \"{item.text}\" timer went back up {item.resetCount} time(s) for the same offer.",
+        "consumerImpact": "A deadline that keeps restarting can rush you into a decision you would otherwise take time over.",
+        "recommendedAction": "Ignore the timer. Compare the price elsewhere or check back later.",
+        "severity": "P1",
+        "confidence": 0.7,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "journey_diff", "source": "journey", "description": "Timer value increased across {item.observations} observations with no change of offer.", "observed": "item.resetCount" }
+        ],
+        "evidenceKey": "{item.cueKey}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S6", "S7"],
+        "limitations": ["Some offers legitimately restart daily. Confirm by reloading after the timer ends."]
+      }
+    },
+    {
+      "id": "BASKET-01",
+      "category": "basket_sneaking",
+      "subcategory": "unconsented_paid_item",
+      "tags": ["preselected_default"],
+      "rationale": "A paid membership, protection plan, service, tip or donation in the basket should be there because the shopper chose it.",
+      "forEach": "lineItems",
+      "when": { "all": [
+        { "eq": [ { "var": "item.paid" }, true ] },
+        { "in": [ { "var": "item.itemType" }, ["membership", "protection", "service", "tip", "donation", "gift"] ] },
+        { "gt": [ { "var": "item.amount" }, 0 ] },
+        { "in": [ { "var": "snapshot.stage" }, ["cart", "checkout"] ] }
+      ] },
+      "requires": { "any": [
+        { "eq": [ { "var": "item.origin" }, "preselected" ] },
+        { "in": [ "product", { "var": "derived.observedStages" } ] }
+      ] },
+      "unless": { "eq": [ { "var": "item.userTapped" }, true ] },
+      "emit": {
+        "title": "Possible item added without your choice",
+        "summary": "\"{item.title}\" ({item.amount|inr}) is in your basket, and FairCart did not see you add it.",
+        "consumerImpact": "You may pay {item.amount|inr} for something you did not choose.",
+        "recommendedAction": "Check the basket and remove \"{item.title}\" if you did not mean to add it.",
+        "severity": "P0",
+        "confidence": 0.75,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "control_state", "source": "current_page", "description": "Paid line item present (origin: {item.origin}); no tap recorded on it.", "observed": "item.amount" }
+        ],
+        "evidenceKey": "{item.id}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S17", "S18"],
+        "limitations": ["FairCart only knows about taps it observed. If you added this before FairCart was active, dismiss the finding."]
+      }
+    },
+    {
+      "id": "BASKET-02",
+      "category": "basket_sneaking",
+      "subcategory": "preselected_default",
+      "tags": ["unconsented_paid_item"],
+      "rationale": "A paid add-on such as a warranty, protection plan or pass should start unticked. A ticked one that the shopper did not tap will be charged.",
+      "forEach": "controls",
+      "when": { "all": [
+        { "in": [ { "var": "item.kind" }, ["checkbox", "toggle"] ] },
+        { "eq": [ { "var": "item.role" }, "add_on" ] },
+        { "eq": [ { "var": "item.checked" }, true ] },
+        { "gt": [ { "var": "item.paidAmount" }, 0 ] }
+      ] },
+      "unless": { "eq": [ { "var": "item.userTapped" }, true ] },
+      "emit": {
+        "title": "Paid add-on already ticked",
+        "summary": "\"{item.label}\" ({item.paidAmount|inr}) is ticked, and FairCart did not see you tick it.",
+        "consumerImpact": "You may be charged {item.paidAmount|inr} for an add-on you did not ask for.",
+        "recommendedAction": "Untick it if you don't want it. FairCart never changes it for you.",
+        "severity": "P0",
+        "confidence": 0.8,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "control_state", "source": "current_page", "description": "Paid add-on control is checked with no recorded tap.", "observed": "item.paidAmount" }
+        ],
+        "evidenceKey": "{item.id}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S9", "S17"],
+        "limitations": ["If you ticked it before FairCart was turned on for this site, dismiss this."]
+      }
+    },
+    {
+      "id": "SHAME-01",
+      "category": "confirm_shaming",
+      "subcategory": "confirm_shaming_variation",
+      "tags": [],
+      "rationale": "Decline options should be neutral. Wording that frames saying no as foolish or careless is confirm shaming.",
+      "forEach": "controls",
+      "when": { "all": [
+        { "eq": [ { "var": "item.role" }, "decline" ] },
+        { "matches": [ { "var": "item.label" }, "shame" ] }
+      ] },
+      "emit": {
+        "title": "Decline option uses guilt-tripping wording",
+        "summary": "The option to say no reads \"{item.label}\".",
+        "consumerImpact": "Loaded wording can push you into an add-on or subscription you do not need.",
+        "recommendedAction": "Decide on the offer itself. Choosing this option only declines the offer.",
+        "severity": "P2",
+        "confidence": 0.8,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Decline control label matches shaming phrasing.", "observed": "item.label" }
+        ],
+        "evidenceKey": "{item.id}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S5"],
+        "limitations": []
+      }
+    },
+    {
+      "id": "FORCED-01",
+      "category": "forced_action",
+      "subcategory": "forced_registration",
+      "tags": [],
+      "rationale": "Requiring an app install or a paid membership to continue a purchase is an unrelated forced action. Login on its own is not flagged because it can be needed for delivery.",
+      "forEach": "cues",
+      "when": { "all": [
+        { "eq": [ { "var": "item.kind" }, "gate" ] },
+        { "in": [ { "var": "item.gateType" }, ["app_install", "membership"] ] }
+      ] },
+      "emit": {
+        "title": "Possible unnecessary requirement to continue",
+        "summary": "This screen asks for \"{item.text}\" before you can continue.",
+        "consumerImpact": "You may be pushed into an install or membership that is not needed for this purchase.",
+        "recommendedAction": "Look for a way to continue without it, such as the website or a guest option.",
+        "severity": "P1",
+        "confidence": 0.6,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Gate of type {item.gateType} shown.", "observed": "item.text" }
+        ],
+        "evidenceKey": "{item.cueKey}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S4", "S5"],
+        "limitations": ["Some gates are optional or can be skipped further down the screen."]
+      }
+    },
+    {
+      "id": "SUB-01",
+      "category": "subscription_trap",
+      "subcategory": "missing_cancel_route",
+      "tags": ["roach_motel"],
+      "rationale": "When a member is managing a paid membership, there should be a visible way to cancel it.",
+      "forEach": "snapshot",
+      "when": { "all": [
+        { "eq": [ { "var": "snapshot.stage" }, "account" ] },
+        { "eq": [ { "var": "snapshot.membership.enrolled" }, true ] },
+        { "eq": [ { "var": "snapshot.membership.cancelRouteVisible" }, false ] }
+      ] },
+      "emit": {
+        "title": "No visible way to cancel this membership",
+        "summary": "You are enrolled in \"{snapshot.membership.name}\", but FairCart found no cancel option on this screen.",
+        "consumerImpact": "A membership that is hard to cancel can keep charging you.",
+        "recommendedAction": "Look for cancellation under account settings or help, and note how many steps it takes.",
+        "severity": "P1",
+        "confidence": 0.5,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Membership management screen without a cancel control.", "observed": "snapshot.membership.name" }
+        ],
+        "evidenceKey": "{snapshot.membership.name}",
+        "researchRefs": ["S1", "S5", "S14"],
+        "limitations": ["The cancel route may be on another screen. Run the guided cancellation test to confirm."]
+      }
+    },
+    {
+      "id": "IFACE-01",
+      "category": "interface_interference",
+      "subcategory": "decline_asymmetry",
+      "tags": [],
+      "rationale": "If accepting is many times more prominent than declining, the design steers the choice.",
+      "forEach": "controls",
+      "when": { "all": [
+        { "eq": [ { "var": "item.role" }, "accept" ] },
+        { "gte": [ { "var": "item.prominenceRatio" }, 4 ] }
+      ] },
+      "emit": {
+        "title": "Decline option is much harder to see",
+        "summary": "\"{item.label}\" is about {item.prominenceRatio}x more prominent than the option to decline.",
+        "consumerImpact": "A faint decline option makes accepting the paid choice the easy path.",
+        "recommendedAction": "Look for the smaller decline option before you continue.",
+        "severity": "P2",
+        "confidence": 0.6,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "control_state", "source": "current_page", "description": "Size × contrast × weight ratio of accept to decline.", "observed": "item.prominenceRatio" }
+        ],
+        "evidenceKey": "{item.groupId}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S5"],
+        "limitations": ["Prominence is estimated from size, contrast and weight. Placement is not yet considered."]
+      }
+    },
+    {
+      "id": "BAIT-01",
+      "category": "bait_and_switch",
+      "subcategory": "entry_price_mismatch",
+      "tags": ["misleading_variant"],
+      "rationale": "The product page should show the same price as the listing card the shopper tapped, unless the shopper changed the variant.",
+      "forEach": "snapshot",
+      "when": { "all": [
+        { "eq": [ { "var": "snapshot.stage" }, "product" ] },
+        { "eq": [ { "var": "derived.hasEntry" }, true ] },
+        { "gt": [ { "var": "derived.priceDeltaPct" }, 5 ] }
+      ] },
+      "unless": { "eq": [ { "var": "derived.variantChangedByUser" }, true ] },
+      "emit": {
+        "title": "Price is higher than the listing you tapped",
+        "summary": "The listing showed {derived.entryPrice|inr}, but this page shows {derived.currentPrice|inr} ({derived.priceDeltaPct|pct} more).",
+        "consumerImpact": "You may pay more than the price that drew you in.",
+        "recommendedAction": "Check that the size, pack and seller match the listing before you add to cart.",
+        "severity": "P1",
+        "confidence": 0.7,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "price_change", "source": "journey", "description": "Listing card price {derived.entryPrice|inr}; product page price {derived.currentPrice|inr}.", "observed": "derived.priceDelta" }
+        ],
+        "evidenceKey": "{derived.entryCardId}",
+        "researchRefs": ["S1", "S4", "S5"],
+        "limitations": ["Prices can legitimately change between page loads. Reload once to confirm."]
+      }
+    },
+    {
+      "id": "DRIP-02",
+      "category": "drip_pricing",
+      "subcategory": "late_mandatory_fee",
+      "tags": [],
+      "rationale": "A mandatory fee should be visible before checkout. A claim is only made if FairCart saw the earlier stages and the fee was not disclosed there.",
+      "forEach": "fees",
+      "when": { "all": [
+        { "eq": [ { "var": "snapshot.stage" }, "checkout" ] },
+        { "eq": [ { "var": "item.context" }, "line" ] },
+        { "in": [ { "var": "item.kind" }, ["handling", "platform", "packaging", "small_cart", "convenience"] ] },
+        { "neq": [ { "var": "item.mandatory" }, false ] },
+        { "eq": [ { "var": "item.firstSeenStage" }, "checkout" ] }
+      ] },
+      "requires": { "all": [
+        { "in": [ "product", { "var": "derived.observedStages" } ] },
+        { "in": [ "cart", { "var": "derived.observedStages" } ] }
+      ] },
+      "unless": { "eq": [ { "var": "item.disclosedEarly" }, true ] },
+      "emit": {
+        "title": "Possible late checkout fee",
+        "summary": "\"{item.label}\" ({item.amount|inr}) first appeared at checkout and was not shown on the product page or in the cart.",
+        "consumerImpact": "The amount you pay is higher than the price you saw earlier.",
+        "recommendedAction": "Review the itemised bill before paying, and compare the full total with other stores.",
+        "severity": "P0",
+        "confidence": 0.8,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "journey_diff", "source": "journey", "description": "Fee of kind {item.kind} first observed at stage {item.firstSeenStage}.", "observed": "item.amount" }
+        ],
+        "evidenceKey": "{item.kind}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S17", "S18"],
+        "limitations": ["FairCart may have missed a disclosure in fine print it could not read."]
+      }
+    },
+    {
+      "id": "AD-01",
+      "category": "disguised_advertisement",
+      "subcategory": "unlabelled_sponsorship",
+      "tags": ["sponsored_ranking"],
+      "rationale": "Paid placement is fine if it is labelled clearly. An ad slot with no label, or a label below basic legibility (under 9px or under 3:1 contrast), can look organic.",
+      "forEach": "cards",
+      "when": { "any": [
+        { "eq": [ { "var": "item.sponsored" }, "unlabelled" ] },
+        { "all": [
+          { "eq": [ { "var": "item.sponsored" }, "labelled" ] },
+          { "any": [
+            { "lt": [ { "var": "item.sponsoredLabelStyle.fontSize" }, 9 ] },
+            { "lt": [ { "var": "item.sponsoredLabelStyle.contrast" }, 3 ] }
+          ] }
+        ] }
+      ] },
+      "emit": {
+        "title": "Sponsored listing may look organic",
+        "summary": "\"{item.title}\" appears to be a paid placement with a missing or very faint label.",
+        "consumerImpact": "You may think this result ranks high on merit when it is an ad.",
+        "recommendedAction": "Compare it with the results below it before choosing.",
+        "severity": "P2",
+        "confidence": 0.6,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Sponsored label state: {item.sponsored}.", "observed": "item.sponsored" }
+        ],
+        "evidenceKey": "{item.retailerSku}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S15"],
+        "limitations": ["The ad slot is identified from page markup, which can change."]
+      }
+    },
+    {
+      "id": "NAG-01",
+      "category": "nagging",
+      "subcategory": "repeated_prompt",
+      "tags": [],
+      "rationale": "Once a prompt is dismissed, showing it again and again without a relevant change is nagging.",
+      "forEach": "cues",
+      "when": { "all": [
+        { "eq": [ { "var": "item.kind" }, "prompt" ] },
+        { "gte": [ { "var": "item.timesShownAfterDismiss" }, 2 ] }
+      ] },
+      "emit": {
+        "title": "Prompt keeps coming back",
+        "summary": "\"{item.text}\" was shown {item.timesShownAfterDismiss} more times after you dismissed it.",
+        "consumerImpact": "Repeated prompts wear you down into accepting something you already declined.",
+        "recommendedAction": "Dismiss it again. You can pause FairCart's hints if they add to the noise.",
+        "severity": "P2",
+        "confidence": 0.8,
+        "status": "detected",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "journey_diff", "source": "journey", "description": "Prompt re-shown after a recorded dismissal.", "observed": "item.timesShownAfterDismiss" }
+        ],
+        "evidenceKey": "{item.promptId}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S5"],
+        "limitations": []
+      }
+    },
+    {
+      "id": "TRICK-01",
+      "category": "trick_wording",
+      "subcategory": "double_negative",
+      "tags": ["privacy_zuckering"],
+      "rationale": "A checkbox or toggle should be understandable at a glance. Double negatives make consent unclear.",
+      "forEach": "controls",
+      "when": { "all": [
+        { "in": [ { "var": "item.kind" }, ["checkbox", "toggle"] ] },
+        { "matches": [ { "var": "item.label" }, "double_negative" ] }
+      ] },
+      "emit": {
+        "title": "Confusing wording on this option",
+        "summary": "\"{item.label}\" uses a double negative, so it is hard to tell what ticking it does.",
+        "consumerImpact": "You might agree to something, such as marketing messages, without meaning to.",
+        "recommendedAction": "Read the option twice and set it to what you actually want.",
+        "severity": "P1",
+        "confidence": 0.6,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Control label contains a double negative.", "observed": "item.label" }
+        ],
+        "evidenceKey": "{item.id}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1", "S5"],
+        "limitations": ["Pattern-matched wording. Some phrasings may still be clear in context."]
+      }
+    },
+    {
+      "id": "SAAS-01",
+      "category": "saas_billing",
+      "subcategory": "undisclosed_renewal",
+      "tags": [],
+      "rationale": "Before signing up for a trial or paid membership, the recurring price, cadence and renewal date should be visible.",
+      "forEach": "snapshot",
+      "when": { "all": [
+        { "in": [ { "var": "snapshot.stage" }, ["membership", "cart", "checkout"] ] },
+        { "exists": "snapshot.membership" },
+        { "eq": [ { "var": "snapshot.membership.enrolled" }, false ] },
+        { "eq": [ { "var": "snapshot.membership.renewalDisclosed" }, false ] },
+        { "any": [
+          { "eq": [ { "var": "snapshot.membership.trial" }, true ] },
+          { "gt": [ { "var": "snapshot.membership.price" }, 0 ] }
+        ] }
+      ] },
+      "emit": {
+        "title": "Renewal terms not shown",
+        "summary": "\"{snapshot.membership.name}\" does not show its recurring price, billing cycle and renewal date here.",
+        "consumerImpact": "A trial or membership could renew at a price you were not told about.",
+        "recommendedAction": "Find the renewal price and date before you sign up, and set a reminder to cancel if needed.",
+        "severity": "P0",
+        "confidence": 0.65,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Membership offer without visible renewal terms (price shown: {snapshot.membership.price|inr}).", "observed": "snapshot.membership.name" }
+        ],
+        "evidenceKey": "{snapshot.membership.name}",
+        "researchRefs": ["S1", "S5"],
+        "limitations": ["Terms may sit behind a link FairCart did not open."]
+      }
+    },
+    {
+      "id": "MAL-01",
+      "category": "rogue_malware",
+      "subcategory": "scareware",
+      "tags": [],
+      "rationale": "Infection warnings or download prompts pointing outside the retailer are signs of scareware. These are rare on mainstream marketplaces.",
+      "forEach": "cues",
+      "when": { "any": [
+        { "eq": [ { "var": "item.kind" }, "scareware" ] },
+        { "all": [
+          { "eq": [ { "var": "item.kind" }, "download_prompt" ] },
+          { "eq": [ { "var": "item.targetOffRetailer" }, true ] }
+        ] }
+      ] },
+      "emit": {
+        "title": "Suspicious warning or download",
+        "summary": "\"{item.text}\" may be a scare tactic or an off-site download.",
+        "consumerImpact": "Installing or paying here could expose your device or money.",
+        "recommendedAction": "Do not download or pay. Close the page and go back to the retailer directly.",
+        "severity": "P0",
+        "confidence": 0.6,
+        "status": "needs_verification",
+        "evidenceBasis": "current_screen",
+        "evidence": [
+          { "type": "screen_text", "source": "current_page", "description": "Cue of kind {item.kind} on a shopping page.", "observed": "item.text" }
+        ],
+        "evidenceKey": "{item.cueKey}",
+        "elementRef": "item.elRef",
+        "researchRefs": ["S1"],
+        "limitations": ["Uncommon in mainstream marketplace checkout. Check the address bar for the real site."]
+      }
+    }
+  ]
+}

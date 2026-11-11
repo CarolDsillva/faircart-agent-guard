@@ -1,0 +1,78 @@
+{
+  "id": "drip-negative-disclosed-early",
+  "description": "Handling fee was disclosed on the product page.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s6",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "checkout",
+      "capturedAt": "2026-10-24T10:06:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "fees": [
+        {
+          "id": "f-hand",
+          "kind": "handling",
+          "amount": 15,
+          "label": "Handling charge",
+          "mandatory": true
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s7",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "product",
+        "capturedAt": "2026-10-24T10:07:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "product": {
+          "title": "Whole wheat atta 5 kg",
+          "retailerSku": "SKU-1",
+          "variantLabel": "5 kg"
+        },
+        "prices": [
+          {
+            "kind": "listed",
+            "amount": 289
+          }
+        ],
+        "fees": [
+          {
+            "id": "d",
+            "kind": "handling",
+            "amount": 15,
+            "label": "A ₹15 handling charge applies",
+            "context": "disclosure"
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s8",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "cart",
+        "capturedAt": "2026-10-24T10:08:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "fees": []
+      }
+    ]
+  },
+  "expect": {
+    "fired": []
+  }
+}

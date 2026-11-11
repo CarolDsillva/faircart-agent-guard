@@ -1,0 +1,38 @@
+{
+  "id": "forced-positive-app-gate",
+  "description": "Offer gated behind an app install.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s23",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:23:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Shoes",
+        "retailerSku": "SKU-3",
+        "variantLabel": "5 kg"
+      },
+      "cues": [
+        {
+          "id": "g",
+          "kind": "gate",
+          "text": "Download the app to unlock this price",
+          "cueKey": "gate:app",
+          "gateType": "app_install"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": [
+      "FORCED-01"
+    ]
+  }
+}

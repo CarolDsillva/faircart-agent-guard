@@ -1,0 +1,31 @@
+{
+  "id": "trick-negative-plain",
+  "description": "Plain opt-in wording.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s41",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "checkout",
+      "capturedAt": "2026-10-24T10:41:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "controls": [
+        {
+          "id": "c-wa",
+          "kind": "checkbox",
+          "label": "Send me offers on WhatsApp",
+          "role": "consent",
+          "checked": false
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

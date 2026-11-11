@@ -1,0 +1,26 @@
+{
+  "name": "@faircart/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "wxt prepare && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@faircart/rules": "0.1.0",
+    "@faircart/schemas": "0.1.0",
+    "@faircart/taxonomy": "0.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.4",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "wxt": "0.20.27"
+  }
+}

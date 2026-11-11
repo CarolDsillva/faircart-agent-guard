@@ -1,0 +1,30 @@
+{
+  "id": "sub-negative-cancel-visible",
+  "description": "Cancel option visible.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s26",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "account",
+      "capturedAt": "2026-10-24T10:26:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "membership": {
+        "name": "Plus membership",
+        "price": 149,
+        "cadence": "monthly",
+        "renewalDisclosed": true,
+        "cancelRouteVisible": true,
+        "enrolled": true
+      }
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "iface-negative-balanced",
+  "description": "Two buttons of similar size and contrast.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s28",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "cart",
+      "capturedAt": "2026-10-24T10:28:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "controls": [
+        {
+          "id": "b-yes",
+          "kind": "button",
+          "label": "Join now",
+          "role": "accept",
+          "groupId": "g1",
+          "style": {
+            "width": 160,
+            "height": 44,
+            "contrast": 7,
+            "fontWeight": 600
+          }
+        },
+        {
+          "id": "b-no",
+          "kind": "button",
+          "label": "Not now",
+          "role": "decline",
+          "groupId": "g1",
+          "style": {
+            "width": 160,
+            "height": 44,
+            "contrast": 7,
+            "fontWeight": 600
+          }
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "id": "journey-quick-commerce-checkout",
+  "description": "Listing → product → cart → checkout. Pass preselected; handling fee appears only at checkout; delivery was disclosed.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s4",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "checkout",
+      "capturedAt": "2026-10-24T10:04:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "lineItems": [
+        {
+          "id": "li-atta",
+          "title": "Whole wheat atta 5 kg",
+          "amount": 289,
+          "paid": true,
+          "itemType": "product",
+          "origin": "user_tap",
+          "retailerSku": "SKU-ATTA"
+        },
+        {
+          "id": "li-pass",
+          "title": "Delivery pass (3 months)",
+          "amount": 99,
+          "paid": true,
+          "itemType": "membership",
+          "origin": "unknown",
+          "controlId": "chk-pass"
+        }
+      ],
+      "fees": [
+        {
+          "id": "f-del",
+          "kind": "delivery",
+          "amount": 30,
+          "label": "Delivery fee",
+          "mandatory": true
+        },
+        {
+          "id": "f-hand",
+          "kind": "handling",
+          "amount": 15,
+          "label": "Handling charge",
+          "mandatory": true
+        }
+      ],
+      "total": 433
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s1",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "listing",
+        "capturedAt": "2026-10-24T10:01:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "cards": [
+          {
+            "id": "card-1",
+            "retailerSku": "SKU-ATTA",
+            "title": "Whole wheat atta 5 kg",
+            "price": 289,
+            "variantLabel": "5 kg",
+            "sponsored": "no"
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s2",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "product",
+        "capturedAt": "2026-10-24T10:02:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "product": {
+          "title": "Whole wheat atta 5 kg",
+          "retailerSku": "SKU-ATTA",
+          "variantLabel": "5 kg"
+        },
+        "prices": [
+          {
+            "kind": "listed",
+            "amount": 289
+          }
+        ],
+        "fees": [
+          {
+            "id": "f-del-disc",
+            "kind": "delivery",
+            "amount": 30,
+            "label": "Delivery ₹30 below ₹199",
+            "context": "disclosure"
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s3",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "cart",
+        "capturedAt": "2026-10-24T10:03:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "lineItems": [
+          {
+            "id": "li-atta",
+            "title": "Whole wheat atta 5 kg",
+            "amount": 289,
+            "paid": true,
+            "itemType": "product",
+            "origin": "user_tap",
+            "retailerSku": "SKU-ATTA"
+          },
+          {
+            "id": "li-pass",
+            "title": "Delivery pass (3 months)",
+            "amount": 99,
+            "paid": true,
+            "itemType": "membership",
+            "origin": "preselected",
+            "controlId": "chk-pass"
+          }
+        ],
+        "fees": [
+          {
+            "id": "f-del",
+            "kind": "delivery",
+            "amount": 30,
+            "label": "Delivery fee",
+            "mandatory": true
+          }
+        ],
+        "total": 418
+      }
+    ],
+    "taps": []
+  },
+  "expect": {
+    "fired": [
+      "BASKET-01",
+      "DRIP-02"
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "nag-positive-reshown",
+  "description": "Pass pop-up dismissed, then shown twice more.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s35",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T11:20:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "cues": [
+        {
+          "id": "p",
+          "kind": "prompt",
+          "text": "Get free delivery with Pass",
+          "cueKey": "prompt:pass",
+          "promptId": "pass-upsell"
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s36",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "listing",
+        "capturedAt": "2026-10-24T11:00:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "cues": [
+          {
+            "id": "p",
+            "kind": "prompt",
+            "text": "Get free delivery with Pass",
+            "cueKey": "prompt:pass",
+            "promptId": "pass-upsell"
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s37",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "listing",
+        "capturedAt": "2026-10-24T11:10:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "cues": [
+          {
+            "id": "p",
+            "kind": "prompt",
+            "text": "Get free delivery with Pass",
+            "cueKey": "prompt:pass",
+            "promptId": "pass-upsell"
+          }
+        ]
+      }
+    ],
+    "taps": [
+      {
+        "controlId": "pass-upsell",
+        "action": "dismiss",
+        "at": "2026-10-24T11:01:00Z"
+      }
+    ]
+  },
+  "expect": {
+    "fired": [
+      "NAG-01"
+    ]
+  }
+}

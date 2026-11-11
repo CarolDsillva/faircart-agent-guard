@@ -1,0 +1,73 @@
+{
+  "id": "bait-negative-variant-changed",
+  "description": "Price rose because the shopper picked a larger size.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s31",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:31:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Olive oil 2 L",
+        "retailerSku": "SKU-9",
+        "variantLabel": "5 kg"
+      },
+      "prices": [
+        {
+          "kind": "listed",
+          "amount": 949
+        }
+      ],
+      "controls": [
+        {
+          "id": "v-2l",
+          "kind": "radio",
+          "label": "2 L",
+          "role": "variant_selector",
+          "checked": true
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s32",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "listing",
+        "capturedAt": "2026-10-24T10:32:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "cards": [
+          {
+            "id": "card-9",
+            "retailerSku": "SKU-9",
+            "title": "Olive oil 1 L",
+            "price": 499,
+            "variantLabel": "1 L",
+            "sponsored": "no"
+          }
+        ]
+      }
+    ],
+    "taps": [
+      {
+        "controlId": "v-2l",
+        "action": "tap",
+        "at": "2026-10-24T09:00:00Z"
+      }
+    ]
+  },
+  "expect": {
+    "fired": []
+  }
+}

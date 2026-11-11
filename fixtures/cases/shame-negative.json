@@ -1,0 +1,38 @@
+{
+  "id": "shame-negative",
+  "description": "Neutral decline wording.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s22",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "cart",
+      "capturedAt": "2026-10-24T10:22:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "controls": [
+        {
+          "id": "b-yes",
+          "kind": "button",
+          "label": "Add pass",
+          "role": "accept",
+          "groupId": "g1"
+        },
+        {
+          "id": "b-no",
+          "kind": "button",
+          "label": "No thanks",
+          "role": "decline",
+          "groupId": "g1"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

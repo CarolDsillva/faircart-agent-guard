@@ -1,0 +1,32 @@
+{
+  "id": "drip-negative-started-at-checkout",
+  "description": "FairCart only saw checkout, so it cannot claim the fee was hidden earlier.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s5",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "checkout",
+      "capturedAt": "2026-10-24T10:05:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "fees": [
+        {
+          "id": "f-hand",
+          "kind": "handling",
+          "amount": 15,
+          "label": "Handling charge",
+          "mandatory": true
+        }
+      ],
+      "total": 304
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

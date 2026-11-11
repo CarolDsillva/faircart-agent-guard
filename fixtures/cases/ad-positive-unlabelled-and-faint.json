@@ -1,0 +1,53 @@
+{
+  "id": "ad-positive-unlabelled-and-faint",
+  "description": "One ad slot with no label, one with a faint label.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s33",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "listing",
+      "capturedAt": "2026-10-24T10:33:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "cards": [
+        {
+          "id": "a1",
+          "retailerSku": "SKU-A1",
+          "title": "Brand X shampoo",
+          "price": 299,
+          "sponsored": "unlabelled"
+        },
+        {
+          "id": "a2",
+          "retailerSku": "SKU-A2",
+          "title": "Brand Y shampoo",
+          "price": 319,
+          "sponsored": "labelled",
+          "sponsoredLabelStyle": {
+            "width": 40,
+            "height": 10,
+            "contrast": 1.6,
+            "fontSize": 9
+          },
+          "cardTextStyle": {
+            "width": 200,
+            "height": 18,
+            "contrast": 12,
+            "fontSize": 14
+          }
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": [
+      "AD-01",
+      "AD-01"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "saas-negative-terms-shown",
+  "description": "Renewal terms shown before signup.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s43",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "membership",
+      "capturedAt": "2026-10-24T10:43:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "membership": {
+        "name": "Pass free trial",
+        "price": 99,
+        "cadence": "monthly",
+        "trial": true,
+        "renewalDisclosed": true
+      }
+    }
+  },
+  "expect": {
+    "fired": []
+  }
+}

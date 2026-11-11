@@ -1,0 +1,52 @@
+{
+  "id": "basket-negative-unticked-addon",
+  "description": "Warranty offers start unticked; one the shopper ticked is fine.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s16",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:16:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Wireless earbuds",
+        "retailerSku": "SKU-EAR",
+        "variantLabel": "5 kg"
+      },
+      "controls": [
+        {
+          "id": "mbb-1",
+          "kind": "checkbox",
+          "label": "1 Year Extended Warranty for ₹79",
+          "role": "add_on",
+          "checked": false,
+          "paidAmount": 79
+        },
+        {
+          "id": "mbb-2",
+          "kind": "checkbox",
+          "label": "2 Year Warranty for ₹149",
+          "role": "add_on",
+          "checked": true,
+          "paidAmount": 149
+        }
+      ]
+    },
+    "taps": [
+      {
+        "controlId": "mbb-2",
+        "action": "tap",
+        "at": "2026-10-24T09:00:00Z"
+      }
+    ]
+  },
+  "expect": {
+    "fired": []
+  }
+}

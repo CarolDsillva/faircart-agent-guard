@@ -1,0 +1,52 @@
+{
+  "id": "iface-positive-asymmetry",
+  "description": "Bold full-width accept next to a tiny faint decline.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s27",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "cart",
+      "capturedAt": "2026-10-24T10:27:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "controls": [
+        {
+          "id": "b-yes",
+          "kind": "button",
+          "label": "Join now",
+          "role": "accept",
+          "groupId": "g1",
+          "style": {
+            "width": 320,
+            "height": 48,
+            "contrast": 7,
+            "fontWeight": 700
+          }
+        },
+        {
+          "id": "b-no",
+          "kind": "link",
+          "label": "skip",
+          "role": "decline",
+          "groupId": "g1",
+          "style": {
+            "width": 80,
+            "height": 16,
+            "contrast": 2.5,
+            "fontWeight": 400
+          }
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": [
+      "IFACE-01"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+const e={onboarded:!1,sensitivity:"standard",companion:"follow",pinnedPos:null,pausedRetailers:[],hoverHints:!0},n=()=>chrome.storage.local;async function a(){const{settings:t}=await n().get("settings");return{...e,...t}}async function o(t){const s={...await a(),...t};return await n().set({settings:s}),s}export{e as D,a as g,o as s};

@@ -1,0 +1,39 @@
+{
+  "id": "basket-positive-ticked-addon",
+  "description": "Extended warranty checkbox already ticked on the product page.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s15",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:15:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Wireless earbuds",
+        "retailerSku": "SKU-EAR",
+        "variantLabel": "5 kg"
+      },
+      "controls": [
+        {
+          "id": "mbb-1",
+          "kind": "checkbox",
+          "label": "1 Year Extended Warranty for ₹79",
+          "role": "add_on",
+          "checked": true,
+          "paidAmount": 79
+        }
+      ]
+    }
+  },
+  "expect": {
+    "fired": [
+      "BASKET-02"
+    ]
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "id": "urgency-negative-new-offer",
+  "description": "Timer went up because a different offer started; a single observation never fires.",
+  "synthetic": true,
+  "context": {
+    "snapshot": {
+      "schemaVersion": 1,
+      "snapshotId": "s19",
+      "journeyId": "j1",
+      "platform": "generic",
+      "surface": "web",
+      "stage": "product",
+      "capturedAt": "2026-10-24T10:19:00Z",
+      "adapterId": "fixture",
+      "adapterVersion": "1",
+      "readability": "full",
+      "product": {
+        "title": "Headphones",
+        "retailerSku": "SKU-2",
+        "variantLabel": "5 kg"
+      },
+      "cues": [
+        {
+          "id": "c1",
+          "kind": "countdown",
+          "text": "Deal ends in 59:59",
+          "value": 3599,
+          "cueKey": "countdown:deal",
+          "offerRef": "deal-8"
+        },
+        {
+          "id": "c2",
+          "kind": "countdown",
+          "text": "Sale ends in 2h",
+          "value": 7200,
+          "cueKey": "countdown:sale"
+        }
+      ]
+    },
+    "journey": [
+      {
+        "schemaVersion": 1,
+        "snapshotId": "s20",
+        "journeyId": "j1",
+        "platform": "generic",
+        "surface": "web",
+        "stage": "product",
+        "capturedAt": "2026-10-24T10:20:00Z",
+        "adapterId": "fixture",
+        "adapterVersion": "1",
+        "readability": "full",
+        "product": {
+          "title": "Headphones",
+          "retailerSku": "SKU-2",
+          "variantLabel": "5 kg"
+        },
+        "cues": [
+          {
+            "id": "c1",
+            "kind": "countdown",
+            "text": "Deal ends in 0:05",
+            "value": 5,
+            "cueKey": "countdown:deal",
+            "offerRef": "deal-7"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "fired": []
+  }
+}
