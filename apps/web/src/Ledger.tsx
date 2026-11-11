@@ -8,15 +8,15 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 /** The grid in the console's own colours and type. */
 const theme = themeQuartz.withParams({
-  fontFamily: 'Schibsted Grotesk, ui-sans-serif, system-ui, sans-serif',
+  fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif',
   fontSize: 13.5,
   headerFontWeight: 600,
-  foregroundColor: '#141b2b',
+  foregroundColor: '#121826',
   headerTextColor: '#5a6478',
   headerBackgroundColor: '#f4f6f8',
   borderColor: '#e1e5eb',
   rowHoverColor: '#f4f6fd',
-  accentColor: '#2443b5',
+  accentColor: '#2952e3',
   wrapperBorderRadius: 10,
   spacing: 7,
 });
