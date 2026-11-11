@@ -1,0 +1,8 @@
+{
+  "name": "@faircart/agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@faircart/guard": "0.1.0", "@faircart/money": "0.1.0", "@faircart/schemas": "0.1.0", "zod": "^4.1.0" }
+}
