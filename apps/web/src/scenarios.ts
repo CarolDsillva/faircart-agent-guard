@@ -56,4 +56,7 @@ export const SCENARIOS: Record<Store, Scenario> = {
   },
 };
 
-export const shopUrl = (s: Store) => `/shop.html?view=item&reset=1${s === 'demomart' ? '' : `&store=${s}`}`;
+/** The production server serves the store at /shop; the Vite dev server only knows shop.html. */
+const SHOP_PATH = import.meta.env.DEV ? '/shop.html' : '/shop';
+
+export const shopUrl = (s: Store) => `${SHOP_PATH}?view=item&reset=1${s === 'demomart' ? '' : `&store=${s}`}`;
