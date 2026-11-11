@@ -6,3 +6,4 @@
 export * from '../../../apps/extension/src/adapters/index';
 export * from '../../../apps/extension/src/retailers';
 export * from '../../../apps/extension/src/store/journey';
+export { dismissControlFor } from '../../../apps/extension/src/adapters/cues';

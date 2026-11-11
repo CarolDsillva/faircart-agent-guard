@@ -205,6 +205,12 @@ export function resetShop(store: Store) {
 export function mountShop(root: HTMLElement) {
   const store = storeFromUrl(location.search);
   const view = viewFromUrl(location.search);
+  const params = new URLSearchParams(location.search);
+  if (params.has('reset')) {
+    resetShop(store);
+    params.delete('reset');
+    history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
+  }
   let state = loadState(store);
   let tick: number | undefined;
 
