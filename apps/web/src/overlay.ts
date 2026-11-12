@@ -17,6 +17,7 @@ const STYLE = `
 @keyframes fc-ripple { from { transform: scale(.4); opacity: 1 } to { transform: scale(3.2); opacity: 0 } }
 .fc-mark { position: absolute; border-radius: 8px; border: 2px solid; box-sizing: border-box; animation: fc-in 380ms ease-out both; }
 .fc-mark b { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; white-space: nowrap; color: #fff; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: .01em; }
+.fc-mark--side b { left: auto; right: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); margin: 0; }
 .fc-mark--money { border-color: #d9480f; background: rgba(217,72,15,.08); }
 .fc-mark--money b { background: #d9480f; }
 .fc-mark--manipulation { border-color: #b97700; background: rgba(232,163,23,.10); border-style: dashed; }
@@ -90,9 +91,53 @@ export async function pointAt(el: Element, label = 'Agent') {
   setTimeout(() => ripple.remove(), 650);
 }
 
+/** Which element each mark belongs to, so marks follow it. */
+const owners = new WeakMap<HTMLElement, Element>();
+
+function place(m: HTMLElement, el: Element) {
+  const b = box(el);
+  const gone = !el.isConnected || !b.w || !b.h;
+  m.style.display = gone ? 'none' : '';
+  if (gone) return;
+  m.style.left = `${b.x - 4}px`;
+  m.style.top = `${b.y - 4}px`;
+  m.style.width = `${b.w + 8}px`;
+  m.style.height = `${b.h + 8}px`;
+}
+
+/**
+ * Sticky headers, fixed pop-ups and sticky bill panels don't move with the page, so a box placed
+ * once would drift off them on scroll. Re-place every mark from its element on scroll, resize and
+ * page changes, once per frame.
+ */
+function track(doc: Document, l: HTMLElement) {
+  if (l.dataset.tracking) return;
+  l.dataset.tracking = '1';
+  const win = doc.defaultView!;
+  let queued = false;
+  const update = () => {
+    queued = false;
+    l.querySelectorAll<HTMLElement>('.fc-mark').forEach((m) => {
+      const el = owners.get(m);
+      if (el) place(m, el);
+    });
+  };
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    win.requestAnimationFrame(update);
+  };
+  win.addEventListener('scroll', schedule, { passive: true, capture: true });
+  win.addEventListener('resize', schedule);
+  new win.MutationObserver((records) => {
+    if (records.some((r) => !l.contains(r.target))) schedule();
+  }).observe(doc.body, { subtree: true, childList: true, attributes: true });
+}
+
 /** Draw FairCart's findings on the page. Replaces earlier marks of the same group. */
 export function mark(doc: Document, group: string, items: { el: Element; label: string; tone: MarkTone }[]) {
   const l = layer(doc);
+  track(doc, l);
   l.querySelectorAll(`.fc-mark[data-group="${group}"]`).forEach((m) => m.remove());
   const seen = new Set<Element>();
   for (const it of items) {
@@ -103,10 +148,11 @@ export function mark(doc: Document, group: string, items: { el: Element; label: 
     const m = doc.createElement('div');
     m.className = `fc-mark fc-mark--${it.tone}`;
     m.dataset.group = group;
-    m.style.left = `${b.x - 4}px`;
-    m.style.top = `${b.y - 4}px`;
-    m.style.width = `${b.w + 8}px`;
-    m.style.height = `${b.h + 8}px`;
+    // Short rows stacked on top of each other (a bill): label beside the box, so labels don't cover the rows.
+    const r = it.el.getBoundingClientRect();
+    if (r.height < 48 && r.left > 240) m.classList.add('fc-mark--side');
+    owners.set(m, it.el);
+    place(m, it.el);
     const tag = doc.createElement('b');
     tag.textContent = it.label;
     m.append(tag);

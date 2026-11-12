@@ -2,8 +2,9 @@ import type { Approval, Reason } from '@faircart/guard';
 import { formatInr, formatUsd } from '@faircart/money';
 import type { Finding } from '@faircart/schemas';
 import { productBySku, searchProducts } from '@faircart/shop';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, type Config, type RunView } from './api';
+import { Home } from './Home';
 import { Ledger } from './Ledger';
 import { clearMarks, mark, type MarkTone } from './overlay';
 import { PayPalPay } from './PayPalPay';
@@ -24,8 +25,8 @@ type View = 'start' | 'shop' | 'fairness';
 export function Mark({ size = 24 }: { size?: number }) {
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
-      <circle cx="16" cy="16" r="15" fill="#0b5d43" />
-      <circle cx="16" cy="16" r="11.4" fill="none" stroke="#8ee0bd" strokeWidth="1.3" strokeDasharray="2 2.2" />
+      <circle cx="16" cy="16" r="15" fill="#003087" />
+      <circle cx="16" cy="16" r="11.4" fill="none" stroke="#5bc2f5" strokeWidth="1.3" strokeDasharray="2 2.2" />
       <path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#fff" strokeWidth="2.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -269,6 +270,7 @@ export function App() {
       </header>
 
       {view === 'start' && (
+        <Home>
         <Start
           prefs={prefs}
           live={inRun || busy}
@@ -290,6 +292,7 @@ export function App() {
             }
           }}
         />
+        </Home>
       )}
       {view === 'fairness' && <Ledger />}
 
@@ -339,6 +342,7 @@ export function App() {
               <Mark size={18} />
             </span>
           </div>
+          <Guide phase={run.phase} peek={peek} loc={loc} />
           <div className="browser__view">
             <iframe ref={frame} title={`${merchant}, as the agent sees it`} src="about:blank" onLoad={onFrameLoad} />
             {busy && (
@@ -364,6 +368,64 @@ export function App() {
   );
 }
 
+/* ------------------------------------------------------------------ Guide */
+
+const GUIDE_STEPS = ['Peek', 'Shop', 'Check', 'You decide', 'Pay'];
+
+/** One plain sentence above the store: what you are watching right now, for someone new to this. */
+function Guide({ phase, peek, loc }: { phase: string; peek: PeekResult | null; loc: Location }) {
+  let step = -1;
+  let text: ReactNode;
+  if (phase === 'idle' && peek) {
+    step = 0;
+    text =
+      peek.stage === 'item'
+        ? 'PennyWise is reading the product page. Boxes mark each trick it finds. Nothing is being bought.'
+        : peek.stage === 'pay'
+          ? "Now the payment page, with whatever the store put in your basket on its own."
+          : peek.stage === 'done'
+            ? 'Red boxes are costs the shelf price hid. Next: let your agent buy it, and watch PennyWise stop them.'
+            : "PennyWise couldn't read this page.";
+  } else if (phase === 'linking') {
+    step = 1;
+    text = 'Link PayPal once for this purchase, so the agent can pay by itself, but only inside your rules.';
+  } else if (phase === 'running') {
+    step = 1;
+    text = "The agent is shopping. Watch its cursor: it declines pop-ups, unticks add-ons and removes what you didn't ask for.";
+  } else if (phase === 'awaiting') {
+    step = 3;
+    text = 'PennyWise blocked the payment. Charges outside your rules need your OK, on the right. The agent cannot approve them.';
+  } else if (phase === 'authorized') {
+    step = 4;
+    text = 'PennyWise approved this exact cart and signed it. Pay with PayPal on the right.';
+  } else if (phase === 'paying') {
+    step = 4;
+    text = 'PayPal holds the money while PennyWise checks the order line by line. Only then is it captured.';
+  } else if (phase === 'paid') {
+    step = 4;
+    text = 'Done. The receipt on the right shows what the store tried to charge and what you paid.';
+  } else if (phase === 'stopped' || phase === 'failed') {
+    text = 'This run ended and nothing was paid. Pick another product, or go back to the agent page.';
+  } else {
+    text =
+      loc.view === 'item'
+        ? 'Hand this product to your agent on the right, or scan the page for tricks first.'
+        : 'Browse freely. Open any product and hand it to your agent.';
+  }
+  return (
+    <div className="guide" role="status">
+      <ol className="guide__steps" aria-label="Steps">
+        {GUIDE_STEPS.map((l, i) => (
+          <li key={l} className={i < step ? 'is-done' : i === step ? 'is-on' : ''}>
+            {l}
+          </li>
+        ))}
+      </ol>
+      <p>{text}</p>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ Start */
 
 const QUICK = ['DEMO-ATTA-5KG', 'CLE-SPARKLE-FLOOR-CLEANER-1-L', 'DAI-PASTURE-PURE-COW-GHEE-1-L', 'BAB-TINYTOES-DIAPER-PANTS-M-42-PCS'];
@@ -381,11 +443,9 @@ function Start({ prefs, live, onPeek, onBuy, onBrowse }: { prefs: Prefs; live: b
   const matches = query.trim() ? searchProducts(query).slice(0, 7) : [];
 
   return (
-    <div className="start">
-      <div className="start__inner">
-        <h1>What should your agent buy?</h1>
-        <p className="start__sub">Tell it what you want and the rules it must follow. Then peek at what the store hides, or let the agent buy it while PennyWise checks every step.</p>
-
+    <div className="demo-box">
+      <div>
+        <p className="demo-box__q">What should your agent buy?</p>
         <form
           className="composer"
           onSubmit={(e) => {
