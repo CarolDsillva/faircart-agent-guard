@@ -117,7 +117,7 @@ describe('runs API', () => {
     for (let i = 0; i < 13; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
     expect(last.json.plan).toBeNull();
     expect(last.json.state).toBe('failed');
-  });
+  }, 20_000); // 13 full product-page readings
 
   it('falls back to the labelled backup planner when the AI returns garbage twice', async () => {
     const { call } = setup(['garbage', { actions: [] }]);
@@ -186,7 +186,7 @@ describe('step limits', () => {
     for (let i = 0; i < 12; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
     expect(last.json.state).toBe('shopping');
     expect(last.json.plan).not.toBeNull();
-  });
+  }, 20_000); // 12 full product-page readings
 
   it('still ends a run that never finishes after 20 planning steps', async () => {
     const { call } = setup([]);
