@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=block" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1800px; height: 1200px; overflow: hidden; }
+  body { font-family: Geist, 'Segoe UI', sans-serif; color: #fff; position: relative;
+    background: radial-gradient(1000px 700px at 90% 0%, #2b8ff0 0%, transparent 60%), radial-gradient(900px 700px at 0% 100%, #001545 0%, transparent 60%), linear-gradient(140deg, #001c64 0%, #003087 55%, #0a4fc4 100%); }
+  .top { position: absolute; left: 90px; right: 90px; top: 64px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; }
+  .eyebrow { font-size: 22px; letter-spacing: .18em; text-transform: uppercase; color: #8fd3ff; font-weight: 700; margin-bottom: 12px; }
+  h1 { font-size: 60px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+  p.sub { margin-top: 14px; font-size: 27px; color: #d3e1f7; line-height: 1.4; max-width: 1300px; }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; white-space: nowrap; }
+  .brand small { color: #8fd3ff; font-weight: 500; font-size: 20px; }
+  .frame { position: absolute; left: 90px; right: 90px; top: 300px; bottom: 70px; display: grid; place-items: center; }
+  .frame img { max-width: 100%; max-height: 100%; border-radius: 22px; box-shadow: 0 50px 100px -30px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.18); background: #fff; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div>
+      <p class="eyebrow" id="eyebrow"></p>
+      <h1 id="title"></h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="brand"><svg viewBox="0 0 32 32" width="40" height="40"><circle cx="16" cy="16" r="15" fill="#fff"/><circle cx="16" cy="16" r="11.4" fill="none" stroke="#5bc2f5" stroke-width="1.3" stroke-dasharray="2 2.2"/><path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#003087" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>PennyWise <small>for PayPal</small></div>
+  </div>
+  <div class="frame"><img id="img" alt="" /></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.getElementById('eyebrow').textContent = q.get('eyebrow') ?? '';
+  document.getElementById('title').textContent = q.get('title') ?? '';
+  document.getElementById('sub').textContent = q.get('sub') ?? '';
+  const img = document.getElementById('img');
+  window.ready = new Promise((r) => { img.onload = r; img.onerror = r; img.src = q.get('img'); }).then(() => document.fonts.ready).then(() => true);
+</script>
+</body>
+</html>

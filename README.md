@@ -10,6 +10,28 @@ PennyWise is a **mandate guard for agent payments**: the layer that decides when
 
 In the demo, you sign an **intent mandate** ("a 12 oz bag of whole bean coffee, at most $25, delivery fees only"). An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **$21.95** for an **$11.49** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the $1.00 nobody explained. It asks you about the two fees it can't remove. When the bill matches, PennyWise signs a **cart mandate**; you log in to PayPal once, at the end, and the agent pays by itself. PayPal holds **$13.97**, PennyWise checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried $21.95. You paid $13.97. You saved $7.98.*
 
+## Screenshots
+
+![PennyWise for PayPal: your AI shops, nobody tricks it](docs/screenshots/0-cover.png)
+
+| PennyWise blocks it at payment | Peek: what the shelf price hides |
+|---|---|
+| ![The product demo: two late fees and an unexplained dollar, numbered on the bill and blocked](docs/screenshots/2-demo-blocked.png) | ![Peek: $12.99 olive oil becomes $23.45 at payment, five hidden costs numbered on the page](docs/screenshots/4-peek.png) |
+| **The live Gemini agent, ready for PayPal** | **The receipt** |
+| ![Live run: PennyWise approved the exact cart; last step is logging in to PayPal to pay $15.47](docs/screenshots/6-live-agent.png) | ![Receipt: DemoMart tried $21.95, you paid $13.97, saved $7.98](docs/screenshots/3-demo-receipt.png) |
+
+**Merchant fairness (AG Grid):** every run becomes part of each merchant's honesty record.
+
+![Merchant fairness ledger built with AG Grid](docs/screenshots/5-merchant-fairness.png)
+
+**How it works:**
+
+![Architecture: rules, reader, Gemini planner, checker, signed mandates, PayPal Orders, Vault and webhooks, ledger](docs/screenshots/architecture.gif)
+
+The landing page:
+
+![PennyWise landing page](docs/screenshots/1-landing.png)
+
 ### Why this should exist inside PayPal
 
 Agentic commerce needs a trusted party that knows what the user agreed to and sees what the merchant is charging. That is the wallet. PennyWise shows what a wallet-side guard does:
