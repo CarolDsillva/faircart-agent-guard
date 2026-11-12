@@ -33,16 +33,18 @@ The same reader, rule engine and checker handle both industries. Nothing is writ
 
 ## Try it
 
-**Hosted demo:** _add the Render URL here_
+**Live demo: https://pennywise-for-paypal.onrender.com**
 
-1. Pick **DemoMart (tricky)** or **FairMart (honest)**.
-2. Sign your instructions: the product, the most you'll spend, and the fees you accept.
-3. Watch the agent shop on the left while the timeline on the right explains each step.
-4. When the agent asks, approve the fees by name, or stop.
-5. With **"Let the agent pay on its own"** ticked (the default), you link PayPal once when you sign. The agent then pays by itself after the checker signs the cart mandate. Untick it to approve the payment yourself in PayPal's pop-up instead.
-6. Sandbox buyer login for linking PayPal: _add the sandbox personal account email here; share the password with judges privately_.
+1. On the start screen, pick a task: **Buy a 5 kg bag of atta** (DemoMart), **Book Bengaluru to Delhi on 14 Nov** (SkyHop), or the same atta from **FairMart**, the honest control.
+2. Set your rules in the composer: the most you'll spend and which fees are fine. **Agent pays with PayPal on its own** is on by default. Turn it off to approve the payment yourself in PayPal's pop-up instead.
+3. Click **Start agent**. The store opens in the browser on the left, and the agent's cursor taps through it while PennyWise boxes every trick it finds. The pane on the right narrates each step.
+4. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
+5. With autopay on, you link PayPal once (Vault) and the agent pays by itself after PennyWise signs the cart mandate. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
+6. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.
 
-FairMart is the control: same product, no tricks. The checker passes it first time, which shows nothing about DemoMart is hard-coded.
+Sandbox buyer for PayPal: _add the sandbox personal account email here; share the password with judges privately_.
+
+The first planning step can take 10 to 20 seconds while Gemini responds. If Gemini is unavailable, a labelled backup planner (no AI) finishes the run.
 
 ## How it works
 
