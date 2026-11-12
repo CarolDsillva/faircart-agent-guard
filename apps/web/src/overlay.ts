@@ -26,7 +26,7 @@ const STYLE = `
 .fc-mark--blocked b { background: #b3261e; }
 .fc-mark--ok { border-color: #11704f; background: rgba(17,112,79,.08); }
 .fc-mark--ok b { background: #11704f; }
-.fc-mark--left b { right: auto; left: -34px; }
+.fc-mark--left b { right: auto; left: -30px; }
 .fc-mark--in b { right: 6px; }
 @keyframes fc-in { from { opacity: 0; transform: scale(.97) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) { .fc-cursor { transition: none } .fc-ripple, .fc-mark { animation: none } }
@@ -177,7 +177,7 @@ export function mark(doc: Document, group: string, items: { el: Element; label: 
     m.dataset.group = group;
     // Badge just outside the box on the right, so it never covers the amount; inside if the page edge is too close.
     const rr = it.el.getBoundingClientRect();
-    if (rr.right > (doc.defaultView?.innerWidth ?? 9999) - 44) m.classList.add(rr.left > 40 ? 'fc-mark--left' : 'fc-mark--in');
+    if (rr.right > (doc.defaultView?.innerWidth ?? 9999) - 44) m.classList.add(rr.left > 28 ? 'fc-mark--left' : 'fc-mark--in');
     owners.set(m, it.el);
     place(m, it.el);
     n += 1;
