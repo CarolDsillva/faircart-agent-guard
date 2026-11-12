@@ -3,7 +3,7 @@ import { formatMoney } from '@faircart/money';
 import { productBySku } from '@faircart/shop';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { clearMarks, pointAt } from './overlay';
+import { clearMarks, pointAt, type Drawn } from './overlay';
 import { productUrl } from './scenarios';
 import { observeDocument, whenQuiet } from './sensor';
 import { showFindings, showVerdict } from './useRun';
@@ -53,6 +53,8 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
   const [cards, setCards] = useState<Cards>({});
   const [path, setPath] = useState('/p/demo-coffee-12oz');
   const [progress, setProgress] = useState(0);
+  /** What is boxed on the page right now, numbered like the badges. */
+  const [marks, setMarks] = useState<Drawn[]>([]);
 
   // The store renders at desktop width and is scaled to fit, like a screen recording.
   const box = useRef<HTMLDivElement>(null);
@@ -126,6 +128,7 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       await wait(0);
       const el = doc().querySelector<HTMLElement>(selector);
       if (!el) throw new Error(`missing ${selector}`);
+      setMarks([]); // the cursor clears the boxes on the page, so the list goes too
       await pointAt(el);
       check();
       const l = navigates ? nextLoad() : null;
@@ -141,8 +144,9 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       const { findings } = await api.peek(obs);
       check();
       clearMarks(doc());
-      showFindings(obs, findings);
-      return findings;
+      const drawn = showFindings(obs, findings);
+      setMarks(drawn);
+      return drawn;
     };
 
     paused.current = false;
@@ -150,6 +154,7 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
     setProgress(0);
     setStatus('playing');
     setCards({});
+    setMarks([]);
     try {
       const item = productBySku(SKU);
 
@@ -161,12 +166,13 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       await wait(2200);
 
       // 2. The trap.
-      await scan(1);
+      const found = await scan(1);
       await api.observe(runId, read(11), [], false); // recorded on arrival, before the agent undoes anything
-      say({ chapter: 1, title: 'PennyWise spots 4 tricks on one page.', tags: ['Plan pre-ticked', 'Guilt-trip pop-up', 'Fake countdown', 'Text aimed at AI'] });
+      say({ chapter: 1, title: `PennyWise spots ${found.length} tricks on one page.` });
       await wait(3600);
 
       // 3. The agent shops.
+      setMarks([]);
       say({ chapter: 2, title: 'The agent says no to the pop-up…' });
       await tap('[data-act="pass-no"]');
       say({ chapter: 2, title: '…unticks the plan you never asked for…' });
@@ -181,6 +187,7 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       say({ chapter: 2, title: 'A $4.99 pass was slipped into the basket. Removed.' });
       await wait(900);
       await tap('[data-act="remove-pass"]');
+      setMarks([]);
       await api.observe(runId, read(4), [], false);
       await tap('a.dm-btn--cta', true);
       setPath('/checkout/payment');
@@ -192,8 +199,8 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       let g = await api.checkout(runId);
       check();
       if (g.verdict !== 'BLOCK') throw new Error('expected a block');
-      showVerdict(obs, g.reasons);
-      setCards({ verdict: { pass: false, lines: g.reasons.map((r: Reason) => r.label) } });
+      setMarks(showVerdict(obs, g.reasons));
+      setCards({ verdict: { pass: false, lines: [] } });
       say({ chapter: 3, title: 'At payment, PennyWise blocks it.', sub: 'Two fees appeared only now, plus $1.00 nobody explains. Plain code decides, not AI.' });
       await wait(4200);
       say({ chapter: 3, title: 'The agent disputes the $1.00 with the store.' });
@@ -206,8 +213,8 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       check();
       if (g.verdict !== 'BLOCK') throw new Error('expected the fees to stay blocked');
       clearMarks(doc());
-      showVerdict(obs, g.reasons);
-      setCards({ verdict: { pass: false, lines: g.reasons.map((r: Reason) => r.label) } });
+      setMarks(showVerdict(obs, g.reasons));
+      setCards({ verdict: { pass: false, lines: [] } });
       await wait(1200);
 
       // 5. You decide.
@@ -225,7 +232,7 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
       check();
       if (g.verdict !== 'PASS') throw new Error('expected a pass');
       clearMarks(doc());
-      showVerdict(obs, null);
+      setMarks(showVerdict(obs, null));
       const paid = g.authorization.totalPaise;
       setCards({ verdict: { pass: true, lines: [`Cart mandate signed for exactly ${usd(paid)}`] } });
       say({ chapter: 4, title: `Every cent matches. Signed for ${usd(paid)}.` });
@@ -345,6 +352,16 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
             {status === 'idle' ? 'An AI agent shops a store built to trick it. PennyWise stops every trick.' : beat.title}
           </p>
           {status !== 'idle' && beat.sub && <p className="pdemo__sub">{beat.sub}</p>}
+          {status !== 'idle' && marks.length > 0 && (
+            <ol className="pdemo__marks" aria-label="Boxed on the page">
+              {marks.map((m) => (
+                <li key={m.n} className={`is-${m.tone}`}>
+                  <span aria-hidden="true">{m.tone === 'ok' ? '✓' : m.n}</span>
+                  {m.label}
+                </li>
+              ))}
+            </ol>
+          )}
           {status !== 'idle' && beat.tags && (
             <ul className="pdemo__tags">
               {beat.tags.map((t) => (
@@ -357,11 +374,13 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
             {cards.verdict && (
               <div className={`pdemo__card ${cards.verdict.pass ? 'pdemo__card--pass' : 'pdemo__card--block'}`}>
                 <b>{cards.verdict.pass ? '✓ PennyWise approved' : '✕ PennyWise blocked payment'}</b>
-                <ul>
-                  {cards.verdict.lines.map((l) => (
-                    <li key={l}>{l}</li>
-                  ))}
-                </ul>
+                {cards.verdict.lines.length > 0 && (
+                  <ul>
+                    {cards.verdict.lines.map((l) => (
+                      <li key={l}>{l}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             {cards.approve && (

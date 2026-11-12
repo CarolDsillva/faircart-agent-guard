@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, type Config, type RunView } from './api';
 import { Home } from './Home';
 import { Ledger } from './Ledger';
-import { clearMarks, mark, reveal, type MarkTone } from './overlay';
+import { clearMarks, mark, reveal, type Drawn, type MarkTone } from './overlay';
 import { PayPalPay } from './PayPalPay';
 import { DEFAULT_PREFS, displayPath, loadPrefs, pageUrl, productUrl, readLocation, savePrefs, storeHome, STORES, type Location, type Prefs, type Store } from './scenarios';
 import { observeDocument, whenQuiet } from './sensor';
@@ -56,6 +56,8 @@ export interface HiddenCost {
   rupees: number;
   why: string;
   allowed: boolean;
+  /** Its badge number on the page. */
+  n?: number;
 }
 
 /** What a peek found: the shelf price against what the store's payment page actually charges. */
@@ -83,7 +85,7 @@ export function App() {
   const [view, setView] = useState<View>('home');
   const [loc, setLoc] = useState<Location>({ store: 'demomart', view: 'home', sku: null, q: '', cat: null });
   const [title, setTitle] = useState('');
-  const [scan, setScan] = useState<{ findings: Finding[]; busy: boolean } | null>(null);
+  const [scan, setScan] = useState<{ drawn: Drawn[]; busy: boolean } | null>(null);
   const [peek, setPeek] = useState<PeekResult | null>(null);
   /** True while PennyWise itself is moving the browser (a peek), so those loads don't end it. */
   const steering = useRef(false);
@@ -120,8 +122,18 @@ export function App() {
     setLoc(l);
     setTitle(frame.current?.contentDocument?.title ?? '');
     setScan(null);
-    // You browsed away yourself: a finished run or peek gives way to shopping.
-    if (!steering.current) setPeek(null);
+    // You browsed away yourself: a finished run or peek gives way to shopping,
+    // and the product you opened becomes what the agent would buy.
+    if (!steering.current) {
+      setPeek(null);
+      if (l.view === 'item' && l.sku && productBySku(l.sku).sku === l.sku && phaseRef.current === 'idle') {
+        setPrefs((prev) => {
+          const next = { ...prev, sku: l.sku!, store: l.store };
+          savePrefs(next);
+          return next;
+        });
+      }
+    }
     if (['paid', 'stopped', 'failed', 'linking'].includes(phaseRef.current)) run.abandon();
     loadWaiter.current?.();
     loadWaiter.current = null;
@@ -196,16 +208,17 @@ export function App() {
           if (!why) continue;
           const allowed = r.kind === 'fee' && !!r.feeKind && p.fees.includes(r.feeKind);
           costs.push({ label: r.label, rupees: r.amount, why, allowed });
-          if (el) marks.push({ el, label: why, tone: allowed ? 'ok' : 'blocked' });
+          if (el) marks.push({ el, label: r.label, tone: allowed ? 'ok' : 'blocked' });
         }
         if (bill?.difference && bill.difference > 0) {
           costs.push({ label: 'Amount no line explains', rupees: bill.difference, why: 'Added to the total with no line on the bill', allowed: false });
           const t = bill.rows.find((r) => r.kind === 'total');
           const el = t?.elRef ? fresh.refs.get(t.elRef) : undefined;
-          if (el) marks.push({ el, label: `$${bill.difference.toFixed(2)} nobody explains`, tone: 'blocked' });
+          if (el) marks.push({ el, label: 'Amount no line explains', tone: 'blocked' });
         }
         if (marks[0]) reveal(marks[0].el, false);
-        mark(doc, 'verdict', marks);
+        const drawn = mark(doc, 'verdict', marks);
+        for (const c of costs) c.n = drawn.find((d) => d.label === c.label)?.n;
         const tricks = [...itemFindings, ...payFindings.filter((f) => !itemFindings.some((x) => x.title === f.title))];
         setPeek({ ...base, stage: 'done', total: bill?.displayedTotal ?? null, costs, tricks });
       } catch {
@@ -221,15 +234,14 @@ export function App() {
   const scanPage = useCallback(async () => {
     const doc = frame.current?.contentDocument;
     if (!doc) return;
-    setScan({ findings: [], busy: true });
+    setScan({ drawn: [], busy: true });
     try {
       const obs = observeDocument(doc, doc.URL, 'scan', 0);
       const { findings } = await api.peek(obs);
       clearMarks(doc);
-      showFindings(obs, findings);
-      setScan({ findings, busy: false });
+      setScan({ drawn: showFindings(obs, findings), busy: false });
     } catch {
-      setScan({ findings: [], busy: false });
+      setScan({ drawn: [], busy: false });
     }
   }, []);
 
@@ -292,14 +304,20 @@ export function App() {
           <section className="section section--stage" id="explore">
             <p className="section__eyebrow">Try it yourself</p>
             <h2>Now you drive: any product, your rules</h2>
-            <p className="section__sub">
-              This agent is live Gemini, not a script. Pick from 180 products at DemoMart (tricky) or FairMart (honest), set your budget and fees, then <b>peek</b> at the hidden costs or <b>let the agent buy it</b>. PayPal runs in sandbox and asks you to log in only at the end.
-            </p>
+            <p className="section__sub">A live AI agent (Gemini) and PayPal sandbox. PayPal asks you to log in only at the end.</p>
           <section className="stage" id="demo" aria-label="Live demo">
             <DemoControls
               prefs={prefs}
               locked={busy}
-              onChange={remember}
+              onChange={(p) => {
+                const moved = p.store !== prefs.store;
+                remember(p);
+                if (moved && !busy) {
+                  run.abandon();
+                  setPeek(null);
+                  go(storeHome(p.store));
+                }
+              }}
               onPeek={() => {
                 stopPlaying();
                 void peekProduct(prefs.store, prefs.sku);
@@ -311,28 +329,6 @@ export function App() {
             />
             <main className="workspace">
               <section className="browser" aria-label={`${merchant}, as the agent sees it`}>
-                <div className="browser__tabs" role="tablist" aria-label="Stores">
-                  {(['demomart', 'fairmart'] as Store[]).map((s) => (
-                    <button
-                      key={s}
-                      role="tab"
-                      aria-selected={loc.store === s}
-                      className={`btab ${loc.store === s ? 'is-on' : ''}`}
-                      disabled={busy}
-                      onClick={() => {
-                        if (loc.store === s) return;
-                        stopPlaying();
-                        run.abandon();
-                        setPeek(null);
-                        go(storeHome(s));
-                      }}
-                    >
-                      <MerchantTile store={s} size={16} />
-                      <span className="btab__title">{loc.store === s && title ? title : STORES[s].merchant}</span>
-                      {STORES[s].honest ? <span className="btab__tag">honest</span> : <span className="btab__tag btab__tag--warn">tricky</span>}
-                    </button>
-                  ))}
-                </div>
                 <div className="browser__bar">
                   <span className="browser__nav">
                     <button aria-label="Back" disabled={busy} onClick={() => frame.current?.contentWindow?.history.back()}>
@@ -392,15 +388,7 @@ export function App() {
               ) : peek ? (
                 <PeekPane peek={peek} prefs={prefs} onBuy={() => void buyProduct(peek.store, peek.sku)} onBack={backToStore} />
               ) : (
-                <ShopPane
-                  loc={loc}
-                  product={product}
-                  prefs={prefs}
-                  scan={scan}
-                  onBuy={() => product && void buyProduct(loc.store, product.sku)}
-                  onScan={() => void scanPage()}
-                  onRules={() => document.querySelector<HTMLInputElement>('.controls input')?.focus()}
-                />
+                <ShopPane loc={loc} scan={scan} onScan={() => void scanPage()} />
               )}
             </main>
           </section>
@@ -465,13 +453,6 @@ function Guide({ phase, peek, loc, playing }: { phase: string; peek: PeekResult 
   return (
     <div className={`guide ${playing ? 'guide--auto' : ''}`} role="status">
       {playing && <span className="guide__auto">Guided demo</span>}
-      <ol className="guide__steps" aria-label="Steps">
-        {GUIDE_STEPS.map((l, i) => (
-          <li key={l} className={i < step ? 'is-done' : i === step ? 'is-on' : ''}>
-            {l}
-          </li>
-        ))}
-      </ol>
       <p>{text}</p>
     </div>
   );
@@ -481,7 +462,7 @@ function Guide({ phase, peek, loc, playing }: { phase: string; peek: PeekResult 
 
 const QUICK = ['DEMO-COFFEE-12OZ', 'PAN-GOLDEN-VALLEY-EXTRA-VIRGIN-OLIVE-OIL-1-L', 'HOU-SPARKLE-LAUNDRY-DETERGENT-92-OZ', 'BAB-TINYTOES-DIAPERS-SIZE-3-84-CT'];
 
-/** What to buy and the rules, in one bar above the live store. */
+/** One row above the live store: what to buy, where, the budget, the rules, and the two actions. */
 function DemoControls({
   prefs,
   locked,
@@ -497,99 +478,105 @@ function DemoControls({
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const item = productBySku(prefs.sku);
   const matches = query.trim() ? searchProducts(query).slice(0, 7) : QUICK.map((k) => productBySku(k));
   const set = (patch: Partial<Prefs>) => onChange({ ...prefs, ...patch });
+  const rulesSummary = `${prefs.fees.length === 1 ? `${FEE_OPTIONS.find((o) => o.kind === prefs.fees[0])?.label ?? 'One'} fee` : prefs.fees.length ? `${prefs.fees.length} fees` : 'No fees'} · ${prefs.autopay ? 'auto-pay' : 'you approve'}`;
 
   return (
-    <div className="controls">
-      <div className="controls__fields">
-        <div className="field field--want">
-          <span className="field__label">Your agent buys</span>
-          <div className="want">
-            <input
-              type="search"
-              placeholder={item.title}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setOpen(true);
-              }}
-              onFocus={() => setOpen(true)}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
-              aria-label="What should your agent buy? Search 180 products"
-              disabled={locked}
-            />
-            <b className="want__price">{money(Math.round(item.price * 100))}</b>
-            {open && (
-              <ul className="want__list" role="listbox">
-                {!query.trim() && <li className="want__hint">Popular picks · or type to search 180 products</li>}
-                {matches.map((m) => (
-                  <li key={m.sku}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={m.sku === prefs.sku}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        set({ sku: m.sku });
-                        setQuery('');
-                        setOpen(false);
-                      }}
-                    >
-                      <span>{m.title}</span>
-                      <b>{money(Math.round(m.price * 100))}</b>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <div className="field">
-          <span className="field__label">From</span>
-          <div className="seg" role="radiogroup" aria-label="Store">
-            {(['demomart', 'fairmart'] as Store[]).map((s) => (
-              <button key={s} type="button" role="radio" aria-checked={prefs.store === s} className={prefs.store === s ? 'is-on' : ''} onClick={() => set({ store: s })} disabled={locked}>
-                {STORES[s].merchant} <em className={`tag ${STORES[s].honest ? 'tag--ok' : 'tag--warn'}`}>{STORES[s].honest ? 'honest' : 'tricky'}</em>
-              </button>
+    <div className="bar">
+      <div className="bar__want">
+        <span className="bar__label">Buy</span>
+        <input
+          type="search"
+          placeholder={item.title}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          aria-label="What should your agent buy? Search 180 products"
+          disabled={locked}
+        />
+        <b>{money(Math.round(item.price * 100))}</b>
+        {open && (
+          <ul className="want__list" role="listbox">
+            {!query.trim() && <li className="want__hint">Popular picks · or type to search 180 products</li>}
+            {matches.map((m) => (
+              <li key={m.sku}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={m.sku === prefs.sku}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    set({ sku: m.sku });
+                    setQuery('');
+                    setOpen(false);
+                  }}
+                >
+                  <span>{m.title}</span>
+                  <b>{money(Math.round(m.price * 100))}</b>
+                </button>
+              </li>
             ))}
-          </div>
-        </div>
-        <label className="field field--budget">
-          <span className="field__label">Spend at most</span>
-          <span className="money-in">
-            $<input type="number" min={1} max={100000} step={0.01} value={prefs.maxRupees} onChange={(e) => set({ maxRupees: Number(e.target.value) })} disabled={locked} />
-          </span>
-        </label>
-        <div className="field field--fees" role="group" aria-label="Fees I'm fine paying">
-          <span className="field__label">Fees I'm fine paying</span>
-          <div className="chips">
-            {FEE_OPTIONS.map((f) => (
-              <button
-                type="button"
-                key={f.kind}
-                className={`chip ${prefs.fees.includes(f.kind) ? 'is-on' : ''}`}
-                aria-pressed={prefs.fees.includes(f.kind)}
-                disabled={locked}
-                onClick={() => set({ fees: prefs.fees.includes(f.kind) ? prefs.fees.filter((x) => x !== f.kind) : [...prefs.fees, f.kind] })}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <button type="button" className={`field field--switch ${prefs.autopay ? 'is-on' : ''}`} aria-pressed={prefs.autopay} onClick={() => set({ autopay: !prefs.autopay })} disabled={locked}>
-          <span className="switch" aria-hidden="true" />
-          <span>
-            <span className="field__label">Agent pays with PayPal</span>
-            {prefs.autopay ? 'On its own, inside these rules' : 'You approve in PayPal'}
-          </span>
-        </button>
+          </ul>
+        )}
       </div>
-      <div className="controls__actions">
+
+      <div className="seg" role="radiogroup" aria-label="Store">
+        {(['demomart', 'fairmart'] as Store[]).map((s) => (
+          <button key={s} type="button" role="radio" aria-checked={prefs.store === s} className={prefs.store === s ? 'is-on' : ''} onClick={() => set({ store: s })} disabled={locked} title={STORES[s].honest ? 'Honest store' : 'Store full of tricks'}>
+            <span className={`dot ${STORES[s].honest ? 'dot--ok' : 'dot--warn'}`} aria-hidden="true" />
+            {STORES[s].merchant}
+          </button>
+        ))}
+      </div>
+
+      <label className="bar__budget">
+        Max $
+        <input type="number" min={1} max={100000} step={0.01} value={prefs.maxRupees} onChange={(e) => set({ maxRupees: Number(e.target.value) })} disabled={locked} aria-label="Spend at most, in dollars" />
+      </label>
+
+      <div className="bar__rules">
+        <button type="button" className="bar__rulesbtn" aria-expanded={rulesOpen} onClick={() => setRulesOpen((v) => !v)} disabled={locked} title={rulesSummary}>
+          Rules <span aria-hidden="true">▾</span>
+        </button>
+        {rulesOpen && <div className="pop__backdrop" aria-hidden="true" onClick={() => setRulesOpen(false)} />}
+        {rulesOpen && (
+          <div className="pop" role="dialog" aria-label="Your rules">
+            <p className="pop__h">Fees you're fine paying</p>
+            <div className="chips">
+              {FEE_OPTIONS.map((f) => (
+                <button
+                  type="button"
+                  key={f.kind}
+                  className={`chip ${prefs.fees.includes(f.kind) ? 'is-on' : ''}`}
+                  aria-pressed={prefs.fees.includes(f.kind)}
+                  onClick={() => set({ fees: prefs.fees.includes(f.kind) ? prefs.fees.filter((x) => x !== f.kind) : [...prefs.fees, f.kind] })}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className={`pop__switch ${prefs.autopay ? 'is-on' : ''}`} aria-pressed={prefs.autopay} onClick={() => set({ autopay: !prefs.autopay })}>
+              <span className="switch" aria-hidden="true" />
+              Agent pays with PayPal on its own
+            </button>
+            <p className="pop__note">Add-ons, passes and subscriptions are never allowed. Anything else comes back to you.</p>
+            <button type="button" className="act act--dark" onClick={() => setRulesOpen(false)}>
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="bar__actions">
         <button className="act" onClick={onPeek} disabled={locked}>
-          Peek at hidden costs
+          Peek at costs
         </button>
         <button className="act act--dark" onClick={onBuy} disabled={locked}>
           Let my agent buy it
@@ -651,6 +638,9 @@ function PeekPane({ peek, prefs, onBuy, onBack }: { peek: PeekResult; prefs: Pre
             <ul>
               {peek.costs.map((c) => (
                 <li key={c.label}>
+                  <span className={`peek-costs__n ${c.allowed ? 'is-ok' : ''}`} aria-hidden="true">
+                    {c.allowed ? '✓' : (c.n ?? '•')}
+                  </span>
                   <span>
                     <b>{c.label}</b>
                     <small>
@@ -702,25 +692,9 @@ function PeekPane({ peek, prefs, onBuy, onBack }: { peek: PeekResult; prefs: Pre
 
 /* -------------------------------------------------------------- Shop pane */
 
-function ShopPane({
-  loc,
-  product,
-  prefs,
-  scan,
-  onBuy,
-  onScan,
-  onRules,
-}: {
-  loc: Location;
-  product: ReturnType<typeof productBySku> | null;
-  prefs: Prefs;
-  scan: { findings: Finding[]; busy: boolean } | null;
-  onBuy: () => void;
-  onScan: () => void;
-  onRules: () => void;
-}) {
+/** Before a run: three plain steps, and the page scan. */
+function ShopPane({ loc, scan, onScan }: { loc: Location; scan: { drawn: Drawn[]; busy: boolean } | null; onScan: () => void }) {
   const info = STORES[loc.store];
-  const over = product ? product.price > prefs.maxRupees : false;
   return (
     <aside className="pane" aria-label="Agent">
       <header className="pane__head">
@@ -731,85 +705,51 @@ function ShopPane({
         </div>
         <span className="state state--idle">Ready</span>
       </header>
-
       <div className="convo">
-        <div className="rules-card">
-          <div>
-            <p className="rules-card__head">Your rules</p>
+        <ol className="howto">
+          <li>
+            <span>1</span>
             <p>
-              Up to <b>{money(Math.round(prefs.maxRupees * 100))}</b> per order · Fees OK: <b>{feeList(prefs.fees)}</b>
+              <b>Pick something.</b> Search in the bar, or open any product in the store.
             </p>
-            <p className="muted small">{prefs.autopay ? 'Pays on its own with your linked PayPal' : 'You approve each payment in PayPal'}</p>
-          </div>
-          <button className="btn btn--quiet btn--sm" onClick={onRules}>
-            Edit
-          </button>
-        </div>
-
-        {loc.view === 'item' && product ? (
-          <div className="buy-card">
-            <p className="buy-card__label">On this page</p>
-            <b>{product.title}</b>
-            <p className="buy-card__price">
-              {money(Math.round(product.price * 100))} <span className="muted small">shelf price</span>
+          </li>
+          <li>
+            <span>2</span>
+            <p>
+              <b>Peek at costs</b> to see what the shelf price leaves out. Nothing is bought.
             </p>
-            <button className="btn btn--primary btn--block" onClick={onBuy}>
-              <Mark size={18} /> Buy this with my agent
-            </button>
-            {over && <p className="small warn-text">This costs more than your {money(Math.round(prefs.maxRupees * 100))} limit. The agent will stop and tell you.</p>}
-            <p className="muted small">The agent shops from this page to payment. PennyWise checks every step against your rules.</p>
-          </div>
-        ) : loc.view === 'home' ? (
-          <div className="hint-card">
-            <b>Pick anything on {info.merchant}</b>
-            <p>Open any product, then hand it to your agent. Or browse to the basket yourself and scan a page for tricks.</p>
-            {!info.honest && (
-              <>
-                <p className="hint-card__head">What {info.merchant} hides</p>
-                <ul>
-                  {info.tricks.map((t) => (
-                    <li key={t}>{t}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="hint-card">
-            <b>{loc.view === 'pay' ? 'Payment page' : 'Your basket'}</b>
-            <p>The agent starts from a product page. Here you can scan for tricks before you pay.</p>
-          </div>
-        )}
+          </li>
+          <li>
+            <span>3</span>
+            <p>
+              <b>Let my agent buy it</b> and watch it shop. PennyWise stops anything outside your rules.
+            </p>
+          </li>
+        </ol>
 
         {loc.view !== 'home' && (
           <button className="btn btn--outline btn--block" onClick={onScan} disabled={scan?.busy}>
             {scan?.busy ? 'Scanning…' : 'Scan this page for tricks'}
           </button>
         )}
-
-        {scan && !scan.busy && (
-          <div className={`scan ${scan.findings.length ? '' : 'scan--clean'}`}>
-            {scan.findings.length ? (
-              <>
-                <p className="scan__head">
-                  <span className="flagged__n">{scan.findings.length}</span> trick{scan.findings.length === 1 ? '' : 's'} on this page, marked on the page
-                </p>
-                <ul>
-                  {scan.findings.map((f) => (
-                    <li key={f.id}>
-                      <b>{fx(f.title)}</b>
-                      <small>{fx(f.summary.replace(/FairCart/g, 'PennyWise'))}</small>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="scan__head">Nothing suspicious on this page.</p>
-            )}
-          </div>
-        )}
+        {scan && !scan.busy && <MarkList items={scan.drawn} empty="Nothing suspicious on this page." />}
       </div>
     </aside>
+  );
+}
+
+/** The numbered list that matches the badges on the page. */
+function MarkList({ items, empty }: { items: Drawn[]; empty?: string }) {
+  if (!items.length) return empty ? <p className="marklist__empty">{empty}</p> : null;
+  return (
+    <ol className="marklist">
+      {items.map((m) => (
+        <li key={m.n} className={`is-${m.tone}`}>
+          <span aria-hidden="true">{m.tone === 'ok' ? '✓' : m.n}</span>
+          {fx(m.label)}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -887,10 +827,17 @@ function AgentPane({ run, store, config, onBack }: { run: Run; store: Store; con
           <EntryView key={e.id} e={e} />
         ))}
 
+        {run.pageMarks.length > 0 && (
+          <div className="onpage">
+            <p className="onpage__h">On this page</p>
+            <MarkList items={run.pageMarks} />
+          </div>
+        )}
+
         {run.findings.length > 0 && (
-          <details className="flagged" open>
+          <details className="flagged">
             <summary>
-              <span className="flagged__n">{run.findings.length}</span> dark pattern{run.findings.length === 1 ? '' : 's'} spotted on {merchant}
+              <span className="flagged__n">{run.findings.length}</span> trick{run.findings.length === 1 ? '' : 's'} caught on {merchant} so far
             </summary>
             <ul>
               {run.findings.map((f) => (
@@ -1051,7 +998,6 @@ function EntryView({ e }: { e: Entry }) {
         <p className="step__title">{e.title}</p>
         {e.detail && <p className="step__detail">{e.detail}</p>}
       </div>
-      <time className="step__time">{e.at.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</time>
     </div>
   );
 }

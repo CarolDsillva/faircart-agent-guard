@@ -4,7 +4,7 @@ import type { Finding, TapEvent } from '@faircart/schemas';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError, type RunView } from './api';
 import { runAction } from './driver';
-import { mark, pointAt, reveal, type MarkTone } from './overlay';
+import { mark, pointAt, reveal, type Drawn, type MarkTone } from './overlay';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
 import { STORES, type Store } from './scenarios';
@@ -59,10 +59,10 @@ const PACE_MS = 500;
 const MONEY = new Set(['basket_sneaking', 'drip_pricing', 'subscription_trap', 'forced_action']);
 
 /** PennyWise's findings, drawn on the page where it found them. */
-export function showFindings(obs: Observation, findings: Finding[]) {
+export function showFindings(obs: Observation, findings: Finding[]): Drawn[] {
   const doc = obs.refs && findings.length ? findings.map((f) => (f.elementRef ? obs.refs.get(f.elementRef) : undefined)).find(Boolean)?.ownerDocument : undefined;
-  if (!doc) return;
-  mark(
+  if (!doc) return [];
+  return mark(
     doc,
     'findings',
     findings.flatMap((f) => {
@@ -73,32 +73,31 @@ export function showFindings(obs: Observation, findings: Finding[]) {
 }
 
 /** The checker's verdict, drawn on the bill lines it is about. */
-export function showVerdict(obs: Observation, reasons: Reason[] | null) {
+export function showVerdict(obs: Observation, reasons: Reason[] | null): Drawn[] {
   const rows = obs.bill?.rows ?? [];
   const el = (ref: string | undefined) => (ref ? obs.refs.get(ref) : undefined);
   const doc = rows.map((r) => el(r.elRef)).find(Boolean)?.ownerDocument;
-  if (!doc) return;
+  if (!doc) return [];
   // Bring the bill into view first, so the marks don't sit under the store's sticky header.
   const totalEl = el(rows.find((r) => r.kind === 'total')?.elRef);
   if (totalEl) reveal(totalEl, false);
   if (!reasons) {
     const total = rows.find((r) => r.kind === 'total');
     const t = el(total?.elRef);
-    mark(doc, 'verdict', t ? [{ el: t, label: 'Matches your mandate', tone: 'ok' }] : []);
-    return;
+    return mark(doc, 'verdict', t ? [{ el: t, label: 'Matches your mandate', tone: 'ok' }] : []);
   }
   const items: { el: Element; label: string; tone: MarkTone }[] = [];
   for (const r of reasons) {
     if (r.subject) {
       const row = rows.find((x) => x.label === r.subject);
       const e = el(row?.elRef);
-      if (e) items.push({ el: e, label: r.code === 'FEE_NOT_ALLOWED' ? 'Fee not in your mandate' : 'Not what you asked for', tone: 'blocked' });
+      if (e) items.push({ el: e, label: r.code === 'FEE_NOT_ALLOWED' ? `${r.subject}: not in your rules` : `${r.subject}: not what you asked for`, tone: 'blocked' });
     } else if (r.code === 'UNEXPLAINED_AMOUNT') {
       const e = el(rows.find((x) => x.kind === 'total')?.elRef);
-      if (e) items.push({ el: e, label: `${r.paise ? `$${(r.paise / 100).toFixed(2)} ` : ''}nobody explains`, tone: 'blocked' });
+      if (e) items.push({ el: e, label: `${r.paise ? `$${(r.paise / 100).toFixed(2)}` : 'An amount'} in the total that no line explains`, tone: 'blocked' });
     }
   }
-  mark(doc, 'verdict', items);
+  return mark(doc, 'verdict', items);
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -135,6 +134,8 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const [store, setStore] = useState<Store>('demomart');
   const [product, setProduct] = useState<{ sku: string; title: string } | null>(null);
   const storeRef = useRef<Store>('demomart');
+  /** What is boxed on the store page right now, numbered like the badges. */
+  const [pageMarks, setPageMarks] = useState<Drawn[]>([]);
   const [autopay, setAutopay] = useState(false);
   const [walletLinked, setWalletLinked] = useState(false);
   /** Set when the browser blocked the PayPal pop-up: the UI offers a plain link instead. */
@@ -197,7 +198,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           if (!live()) return;
           const obs = await observe();
           const res = await api.observe(id, obs, taps.current.splice(0));
-          showFindings(obs, res.findings);
+          setPageMarks(showFindings(obs, res.findings));
           addFindings(res.findings);
           if (res.planner) setPlanner(res.planner);
           if (res.planner === 'backup' && res.plannerError && !noticedBackup) {
@@ -220,7 +221,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
               const checked = await observe();
               await api.observe(id, checked, taps.current.splice(0), false);
               const g = await api.checkout(id);
-              showVerdict(checked, g.verdict === 'PASS' ? null : g.reasons);
+              setPageMarks(showVerdict(checked, g.verdict === 'PASS' ? null : g.reasons));
               if (g.verdict === 'PASS') {
                 setReasons([]);
                 setAuthorization(g.authorization);
@@ -257,6 +258,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
               setPhase('awaiting');
               return;
             }
+            setPageMarks([]);
             const r = await runAction(action, { observe, waitForNavigation, point: (el) => pointAt(el) });
             if (r.tap) taps.current.push(r.tap);
             if (r.result === 'stale') {
@@ -306,6 +308,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setRunId(null);
     setEntries([]);
     setFindings([]);
+    setPageMarks([]);
     setReasons([]);
     setAuthorization(null);
     setPlanner(null);
@@ -452,5 +455,5 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   /** The buyer closed PayPal without approving: back to "Ready to pay". */
   const payCancelled = useCallback(() => setPhase('authorized'), []);
 
-  return { autopay, walletLinked, walletUrl, linkWallet, phase, runId, entries, findings, reasons, authorization, planner, view, error, store, product, onFrameLoad, abandon, start, approve, stop, createOrder, captured, payFailed, payCancelled };
+  return { autopay, walletLinked, walletUrl, linkWallet, phase, runId, entries, findings, reasons, authorization, planner, view, error, store, product, pageMarks, onFrameLoad, abandon, start, approve, stop, createOrder, captured, payFailed, payCancelled };
 }

@@ -3084,3 +3084,332 @@ button {
 .explore-page {
   padding-bottom: 40px;
 }
+
+/* ------------------------------------- Numbered marks, simpler explore (v11) */
+.step {
+  grid-template-columns: 22px 1fr;
+}
+
+/* The numbered list beside the page, matching the badges on it. */
+.marklist,
+.pdemo__marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.marklist li,
+.pdemo__marks li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.marklist li > span,
+.pdemo__marks li > span,
+.peek-costs__n {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fff;
+  background: #b3261e;
+  flex: none;
+}
+.marklist .is-money > span,
+.pdemo__marks .is-money > span {
+  background: #d9480f;
+}
+.marklist .is-manipulation > span,
+.pdemo__marks .is-manipulation > span {
+  background: #9a6400;
+}
+.marklist .is-ok > span,
+.pdemo__marks .is-ok > span,
+.peek-costs__n.is-ok {
+  background: #11704f;
+}
+.marklist__empty {
+  font-size: 13px;
+  color: var(--pass);
+  background: var(--pass-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.pdemo__marks li {
+  color: #e3eaf7;
+  animation: fc-rise 0.3s ease both;
+}
+.peek-costs li {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+.peek-costs li > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.onpage {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fbfcfe;
+}
+.onpage__h {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+
+/* One-row control bar. */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  flex-wrap: wrap;
+}
+.bar__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-right: 6px;
+}
+.bar__want {
+  position: relative;
+  flex: 1 1 300px;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 0 12px;
+}
+.bar__want:focus-within {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 3px rgba(0, 112, 224, 0.12);
+}
+.bar__want input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 500 14px var(--sans);
+  color: var(--ink);
+  text-overflow: ellipsis;
+}
+.bar__want input::placeholder {
+  color: var(--ink);
+  opacity: 1;
+}
+.bar__want input:focus::placeholder {
+  color: var(--faint);
+}
+.bar__want b {
+  font-size: 14px;
+  color: var(--pp-navy);
+  white-space: nowrap;
+}
+.bar__want .want__list {
+  top: 44px;
+}
+.bar .seg {
+  height: 40px;
+  flex: none;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot--ok {
+  background: #12b76a;
+}
+.dot--warn {
+  background: #e5484d;
+}
+.bar__budget {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 0 10px;
+  font-weight: 600;
+  flex: none;
+}
+.bar__budget input {
+  width: 64px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 600 14px var(--sans);
+  margin-left: 2px;
+}
+.bar__rules {
+  position: relative;
+  flex: none;
+}
+.bar__rulesbtn {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  font: 500 13px var(--sans);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bar__rulesbtn:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+.pop {
+  position: absolute;
+  z-index: 20;
+  top: 46px;
+  right: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 20px 40px -18px rgba(18, 24, 38, 0.35);
+  display: grid;
+  gap: 10px;
+}
+.pop__h {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.pop__switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 500 13.5px var(--sans);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.pop__note {
+  font-size: 12px;
+  color: var(--slate);
+  line-height: 1.45;
+}
+.bar__actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.bar__actions .act {
+  height: 40px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+/* The idle panel: three steps. */
+.howto {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.howto li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.howto li > span {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pp-navy);
+  background: var(--agent-soft);
+}
+.howto p {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+.howto b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Text never spills out of its box. */
+.pane,
+.pane * ,
+.pdemo__story,
+.pdemo__card {
+  min-width: 0;
+}
+.pane p,
+.pane li,
+.pane b,
+.pdemo__card li,
+.pdemo__caption,
+.pdemo__sub {
+  overflow-wrap: anywhere;
+}
+.explore-page .browser {
+  grid-template-rows: auto auto 1fr;
+}
+.bar {
+  flex-wrap: nowrap;
+}
+.bar__want {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+@media (max-width: 1100px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+}
+.bar__budget {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--slate);
+}
+.bar__budget input {
+  width: 52px;
+  color: var(--ink);
+}
+.bar .seg button {
+  padding: 7px 10px;
+}
+.pop__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}

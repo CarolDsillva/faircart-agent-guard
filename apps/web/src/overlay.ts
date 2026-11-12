@@ -16,9 +16,8 @@ const STYLE = `
 .fc-ripple { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #2443b5; animation: fc-ripple 600ms ease-out forwards; }
 @keyframes fc-ripple { from { transform: scale(.4); opacity: 1 } to { transform: scale(3.2); opacity: 0 } }
 .fc-mark { position: absolute; border-radius: 8px; border: 2px solid; box-sizing: border-box; animation: fc-in 380ms ease-out both; }
-.fc-mark b { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; white-space: nowrap; color: #fff; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: .01em; }
-.fc-mark--side b { left: auto; right: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); margin: 0; }
-.fc-mark--mid b { left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%); margin: 0; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+/* Every mark gets the same numbered badge on its top-right corner: they line up, and never spill over. */
+.fc-mark b { position: absolute; right: -34px; top: 50%; margin-top: -13px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .fc-mark--money { border-color: #d9480f; background: rgba(217,72,15,.08); }
 .fc-mark--money b { background: #d9480f; }
 .fc-mark--manipulation { border-color: #b97700; background: rgba(232,163,23,.10); border-style: dashed; }
@@ -27,6 +26,7 @@ const STYLE = `
 .fc-mark--blocked b { background: #b3261e; }
 .fc-mark--ok { border-color: #11704f; background: rgba(17,112,79,.08); }
 .fc-mark--ok b { background: #11704f; }
+.fc-mark--in b { right: 6px; }
 @keyframes fc-in { from { opacity: 0; transform: scale(.97) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) { .fc-cursor { transition: none } .fc-ripple, .fc-mark { animation: none } }
 `;
@@ -148,12 +148,23 @@ function track(doc: Document, l: HTMLElement) {
   }).observe(doc.body, { subtree: true, childList: true, attributes: true });
 }
 
-/** Draw FairCart's findings on the page. Replaces earlier marks of the same group. */
-export function mark(doc: Document, group: string, items: { el: Element; label: string; tone: MarkTone }[]) {
-  if (!doc.defaultView || !doc.body) return;
+export interface Drawn {
+  n: number;
+  label: string;
+  tone: MarkTone;
+}
+
+/**
+ * Draw boxes on the page, each with a numbered badge. Replaces earlier marks of the same group and
+ * returns what was drawn, so the panel beside the page can list "1. …, 2. …" to match.
+ */
+export function mark(doc: Document, group: string, items: { el: Element; label: string; tone: MarkTone }[]): Drawn[] {
+  if (!doc.defaultView || !doc.body) return [];
   const l = layer(doc);
   track(doc, l);
   l.querySelectorAll(`.fc-mark[data-group="${group}"]`).forEach((m) => m.remove());
+  const drawn: Drawn[] = [];
+  let n = l.querySelectorAll('.fc-mark').length;
   const seen = new Set<Element>();
   for (const it of items) {
     if (seen.has(it.el) || !it.el.isConnected) continue;
@@ -163,16 +174,19 @@ export function mark(doc: Document, group: string, items: { el: Element; label: 
     const m = doc.createElement('div');
     m.className = `fc-mark fc-mark--${it.tone}`;
     m.dataset.group = group;
-    // Short rows stacked on top of each other (a bill): label beside the box, so labels don't cover the rows.
-    const r = it.el.getBoundingClientRect();
-    if (r.height < 48) m.classList.add(r.left > 240 ? 'fc-mark--side' : 'fc-mark--mid');
+    // Badge just outside the box on the right, so it never covers the amount; inside if the page edge is too close.
+    if (it.el.getBoundingClientRect().right > (doc.defaultView?.innerWidth ?? 9999) - 44) m.classList.add('fc-mark--in');
     owners.set(m, it.el);
     place(m, it.el);
+    n += 1;
     const tag = doc.createElement('b');
-    tag.textContent = it.label;
+    tag.textContent = it.tone === 'ok' ? '✓' : String(n);
+    m.title = it.label;
     m.append(tag);
     l.append(m);
+    drawn.push({ n, label: it.label, tone: it.tone });
   }
+  return drawn;
 }
 
 /** Remove the overlay's marks (the cursor stays). */
