@@ -134,14 +134,16 @@ export function Ledger() {
   );
 
   const totals = useMemo(() => {
-    // Demo runs show what the store tried, but their payment is simulated: not counted as paid.
-    const paid = (rows ?? []).filter((r) => r.paidPaise !== null && !r.demo);
+    // Runs that reached a signed cart. Demo runs count for what the store tried and what PennyWise
+    // saved, but their payment is simulated, so they never count as money agents paid.
+    const signed = (rows ?? []).filter((r) => r.paidPaise !== null);
+    const paid = signed.filter((r) => !r.demo);
     return {
       runs: rows?.length ?? 0,
       paidRuns: paid.length,
-      tried: paid.reduce((s, r) => s + r.triedPaise, 0),
+      tried: signed.reduce((s, r) => s + r.triedPaise, 0),
       paid: paid.reduce((s, r) => s + (r.paidPaise ?? 0), 0),
-      saved: paid.reduce((s, r) => s + (r.savedPaise ?? 0), 0),
+      saved: signed.reduce((s, r) => s + (r.savedPaise ?? 0), 0),
       blocked: charges.reduce((s, c) => s + c.paise, 0),
       byAgent: paid.filter((r) => r.paidBy === 'agent').length,
     };
