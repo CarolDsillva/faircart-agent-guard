@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PennyWise for PayPal: judges' brief</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600&display=block" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Geist, 'Segoe UI', sans-serif; color: #0a1630; font-size: 9.3pt; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 14mm 15mm; position: relative; overflow: hidden; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .band { margin: -14mm -15mm 6mm; padding: 10mm 15mm 8mm; color: #fff;
+    background: radial-gradient(500px 300px at 90% 0%, #2b8ff0 0%, transparent 60%), linear-gradient(140deg, #001c64 0%, #003087 60%, #0a4fc4 100%); }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12pt; }
+  .brand small { color: #8fd3ff; font-weight: 500; }
+  h1 { font-size: 24pt; line-height: 1.05; letter-spacing: -0.02em; margin: 5mm 0 2.5mm; }
+  h1 span { color: #5bc2f5; }
+  .pitch { font-size: 12pt; color: #d3e1f7; max-width: 160mm; }
+  .links { margin-top: 4mm; font-family: 'Geist Mono', monospace; font-size: 9pt; color: #8fd3ff; }
+  h2 { font-size: 12pt; color: #003087; margin: 3.5mm 0 1.5mm; letter-spacing: -0.01em; }
+  h2:first-child { margin-top: 0; }
+  p + p { margin-top: 2mm; }
+  ul, ol { padding-left: 5mm; }
+  li { margin: 1mm 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 3mm 0 1mm; }
+  .stat div { border-left: 3px solid #009cde; padding-left: 3mm; }
+  .stat b { display: block; font-size: 16pt; color: #003087; }
+  .stat span { font-size: 8.5pt; color: #4b5a75; }
+  img.shot { width: 100%; max-height: 92mm; object-fit: contain; object-position: left top; border-radius: 3mm; border: 1px solid #d8e2f0; display: block; }
+  .cap { font-size: 8pt; color: #6b7a96; margin-top: 1.5mm; }
+  .box { background: #eef5fc; border: 1px solid #cfe0f5; border-radius: 3mm; padding: 4mm 5mm; }
+  .box.dark { background: #003087; color: #fff; border: 0; }
+  .box.dark h2 { color: #8fd3ff; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.6pt; table-layout: fixed; }
+  td { padding: 1.2mm 1.6mm; border-bottom: 1px solid #e3e9f2; vertical-align: top; }
+  td:first-child { font-weight: 600; color: #003087; width: 27mm; }
+  code { font-family: 'Geist Mono', monospace; font-size: 8.5pt; background: #eef2f8; padding: 0 1mm; border-radius: 1mm; }
+  .foot { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; font-size: 8pt; color: #8a97ad; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<!-- Page 1 -->
+<section class="page">
+  <div class="band">
+    <div class="brand"><svg viewBox="0 0 32 32" width="22" height="22"><circle cx="16" cy="16" r="15" fill="#fff"/><path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#003087" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>PennyWise <small>for PayPal</small></div>
+    <h1>Your AI shops.<br/><span>Nobody tricks it.</span></h1>
+    <p class="pitch">An $11.49 coffee became $21.95 at checkout. Your AI agent wouldn't notice. PennyWise does, and PayPal only pays what you approved.</p>
+    <p class="links">pennywise-for-paypal.onrender.com · github.com/CarolDsillva/pennywise-for-paypal (MIT)</p>
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2>The problem</h2>
+      <p>AI agents are starting to shop and pay for people. Checkouts are full of dark patterns: protection plans already ticked, passes slipped into the basket, fees that appear only at payment, amounts no line explains. India's consumer regulator lists 13 of them; the same tricks run everywhere. A person sometimes notices. An agent following instructions usually doesn't, and some pages now carry text written to instruct AI agents.</p>
+      <div class="stat">
+        <div><b>+91%</b><span>added to an $11.49 coffee at our trick store</span></div>
+        <div><b>5</b><span>hidden costs on one checkout</span></div>
+        <div><b>$0</b><span>moves outside your rules</span></div>
+      </div>
+      <h2>What PennyWise does</h2>
+      <ol>
+        <li><b>You set the rules:</b> what to buy, the most to spend, which fees are fine. Signed as an <b>intent mandate</b>.</li>
+        <li><b>A Gemini agent shops</b> one page at a time. It has no tool that can pay or approve a charge.</li>
+        <li><b>PennyWise reads every page</b>, numbers each trick, and a plain-code checker blocks any charge outside your rules. Only you can allow an extra fee.</li>
+        <li><b>PayPal pays only the signed cart:</b> it authorizes and holds the money, PennyWise reads the order back line by line, then it is captured. Any mismatch, and it's voided.</li>
+      </ol>
+    </div>
+    <div>
+      <img class="shot" src="../docs/screenshots/2-demo-blocked.png" alt="" />
+      <p class="cap">At payment, PennyWise numbers and blocks two late fees and an unexplained dollar.</p>
+      <div style="height:4mm"></div>
+      <img class="shot" src="../docs/screenshots/4-peek.png" alt="" />
+      <p class="cap">Peek: what the shelf price hides on any of 174 products. No AI, nothing bought.</p>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:5mm">
+    <h2>Test it in 2 minutes</h2>
+    <ol>
+      <li>Open <b>pennywise-for-paypal.onrender.com</b> and press <b>Watch the demo</b> (45 seconds, no login).</li>
+      <li><b>Try it yourself</b> → pick a product → <b>Peek at costs</b>.</li>
+      <li><b>Let my agent buy it</b> → approve the fees → at <b>Last step: log in to PayPal</b>, use the sandbox buyer in the Devpost testing instructions.</li>
+      <li>Open <b>Merchant fairness</b> to see the run in the AG Grid ledger.</li>
+    </ol>
+  </div>
+  <div class="foot"><span>PennyWise for PayPal · PayPal AI Hackathon</span><span>1 / 2</span></div>
+</section>
+
+<!-- Page 2 -->
+<section class="page">
+  <h2>How it works</h2>
+  <img class="shot" src="out/arch-frames/f0098.png" alt="" style="max-height:none;width:78%" />
+  <p class="cap">The AI proposes. PennyWise checks. PayPal moves only the money you approved.</p>
+
+  <div class="grid" style="margin-top:4mm">
+    <div>
+      <h2>PayPal integration (sandbox)</h2>
+      <table>
+        <tr><td>Orders v2</td><td>Through PayPal's TypeScript Server SDK (generated by APIMatic). Every approved line is an item; idempotent per authorization.</td></tr>
+        <tr><td>Authorize → verify → capture</td><td>Intent AUTHORIZE so PayPal holds the money; PennyWise compares the order with the signed cart; capture, or void on mismatch.</td></tr>
+        <tr><td>Vault v3</td><td>Saves the buyer's wallet so the agent can pay by itself (human-not-present). Login only at the end.</td></tr>
+        <tr><td>JS SDK buttons</td><td>Buyer-approved payment when autopay is off.</td></tr>
+        <tr><td>Webhooks</td><td>Verified <code>PAYMENT.CAPTURE.COMPLETED</code> settles the run.</td></tr>
+      </table>
+    </div>
+    <div>
+      <h2>AI</h2>
+      <p><b>Google Gemini</b> (<code>gemini-3.5-flash-lite</code>) plans each page through one forced function call, from a structured brief of controls, prices and PennyWise's findings. Every action is validated against the page. A labelled backup planner (no AI) covers a page if Gemini is unavailable.</p>
+      <h2>Trust model</h2>
+      <ul>
+        <li>Nothing the AI outputs can move money or change an amount.</li>
+        <li>Mandates and authorizations are HMAC-signed and single-use; money is integer cents.</li>
+        <li>Page text is data: instructions aimed at AI can't steer payments.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box dark" style="margin-top:4mm">
+    <h2>Prize categories</h2>
+    <table style="color:#fff">
+      <tr><td style="color:#8fd3ff">Agentic Commerce</td><td style="border-color:rgba(255,255,255,.15)">The agent pays by itself inside intent and cart mandates (AP2 vocabulary), via a vaulted PayPal wallet.</td></tr>
+      <tr><td style="color:#8fd3ff">PayPal + AI</td><td style="border-color:rgba(255,255,255,.15)">Gemini plans; PayPal Orders, Vault and authorize–verify–capture move only the approved amount.</td></tr>
+      <tr><td style="color:#8fd3ff">AG Grid</td><td style="border-color:rgba(255,255,255,.15)">Merchant fairness: honesty score per merchant, every run, every blocked charge, CSV export.</td></tr>
+      <tr><td style="color:#8fd3ff">APIMatic</td><td style="border-color:rgba(255,255,255,.15)">All orders and payments through the APIMatic-generated PayPal TypeScript Server SDK.</td></tr>
+      <tr><td style="color:#8fd3ff">Render</td><td style="border-color:rgba(255,255,255,.15)">Blueprint web service with health check, auto-deploy and a persistent disk for the ledger.</td></tr>
+    </table>
+  </div>
+
+  <h2>What we built during the hackathon</h2>
+  <p>FairCart's rule pack and page adapters came from our earlier browser-extension proof of concept. Everything else is new: the agent loop, checker and mandates, the full PayPal integration, two stores with 174 products, the console, product demo, Peek and the AG Grid ledger, and the Render deployment.</p>
+
+  <div class="foot"><span>Built with TypeScript, React, Hono, PayPal, Gemini, AG Grid, APIMatic, Render</span><span>2 / 2</span></div>
+</section>
+</body>
+</html>
