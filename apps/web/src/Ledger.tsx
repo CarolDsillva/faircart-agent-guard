@@ -153,7 +153,7 @@ export function Ledger() {
     () => [
       { field: 'at', headerName: 'When', valueFormatter: when, sort: 'desc', width: 130 },
       { field: 'store', headerName: 'Merchant', width: 115, filter: true },
-      { field: 'state', headerName: 'Outcome', cellRenderer: StateCell, width: 130, filter: true },
+      { field: 'state', headerName: 'Outcome', cellRenderer: StateCell, width: 200, filter: true },
       { field: 'triedPaise', headerName: 'Tried to charge', valueFormatter: inr, type: 'numericColumn', width: 120 },
       { field: 'paidPaise', headerName: 'Paid', valueFormatter: inr, type: 'numericColumn', width: 100 },
       {
