@@ -19,7 +19,7 @@ const FEE_OPTIONS: { kind: string; label: string }[] = [
   { kind: 'convenience', label: 'Convenience' },
 ];
 
-type View = 'home' | 'fairness';
+type View = 'home' | 'explore' | 'fairness';
 
 /** PennyWise's mark: a coin with a check. */
 export function Mark({ size = 24 }: { size?: number }) {
@@ -139,7 +139,7 @@ export function App() {
   const buyProduct = useCallback(
     async (store: Store, buySku: string, p: Prefs = prefs) => {
       const item = productBySku(buySku);
-      setView('home');
+      setView('explore');
       setPeek(null);
       run.abandon();
       steering.current = true;
@@ -157,7 +157,7 @@ export function App() {
   const peekProduct = useCallback(
     async (store: Store, peekSku: string, p: Prefs = prefs) => {
       const item = productBySku(peekSku);
-      setView('home');
+      setView('explore');
       run.abandon();
       steering.current = true;
       const base: PeekResult = { store, sku: item.sku, stage: 'item', shelf: item.price, total: null, costs: [], tricks: [] };
@@ -246,7 +246,7 @@ export function App() {
   const playing = false;
   const stopPlaying = () => undefined;
 
-  const toStage = () => document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const toExplore = () => setView('explore');
 
   return (
     <div className="app">
@@ -267,12 +267,7 @@ export function App() {
           >
             Product
           </button>
-          <button
-            onClick={() => {
-              setView('home');
-              setTimeout(toStage, 0);
-            }}
-          >
+          <button className={view === 'explore' ? 'is-on' : ''} onClick={toExplore}>
             Try it yourself
           </button>
           <button className={view === 'fairness' ? 'is-on' : ''} onClick={() => setView('fairness')}>
@@ -288,7 +283,18 @@ export function App() {
       {view === 'fairness' && <Ledger />}
 
       <div className="home-wrap" hidden={view !== 'home'}>
-        <Home onTry={toStage}>
+        <Home onTry={toExplore} />
+      </div>
+
+      {/* Its own page, kept mounted while hidden so a run or the store page survives switching tabs. */}
+      <div className="home-wrap" hidden={view !== 'explore'}>
+        <div className="home explore-page">
+          <section className="section section--stage" id="explore">
+            <p className="section__eyebrow">Try it yourself</p>
+            <h2>Now you drive: any product, your rules</h2>
+            <p className="section__sub">
+              This agent is live Gemini, not a script. Pick from 180 products at DemoMart (tricky) or FairMart (honest), set your budget and fees, then <b>peek</b> at the hidden costs or <b>let the agent buy it</b>. PayPal runs in sandbox and asks you to log in only at the end.
+            </p>
           <section className="stage" id="demo" aria-label="Live demo">
             <DemoControls
               prefs={prefs}
@@ -398,7 +404,8 @@ export function App() {
               )}
             </main>
           </section>
-        </Home>
+          </section>
+        </div>
       </div>
     </div>
   );
