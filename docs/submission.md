@@ -13,11 +13,11 @@ Devpost rules: YouTube, public, under 3 minutes, showing the project working. No
 
 | Time | On screen | Voiceover |
 |---|---|---|
-| 0:00 | Rules screen | "AI agents are starting to buy things for us. But checkouts are full of tricks built to catch people: pre-ticked add-ons, fees that appear at the last step, charges nobody explains. An agent falls for them even more easily. This is PennyWise." |
-| 0:15 | Set ₹1,000 per order, delivery fee OK, agent pays on its own. Save | "I set my agent's rules once: at most ₹1,000 an order, delivery fees only, and it may pay with PayPal on its own, inside these rules. That's my intent mandate." |
-| 0:28 | DemoMart's front page. Scroll the aisles, open Sunrise Chakki Atta 5 kg | "This is DemoMart, a store with a trick on every product. I can pick anything." |
-| 0:35 | Click "Scan this page for tricks". Red boxes appear on the page | "Before buying, PennyWise can scan any page: a protection plan already ticked, a guilt-trip pop-up, a fake countdown, and text written to instruct AI agents." |
-| 0:45 | Click "Buy this with my agent". Link PayPal (sandbox login, approve) | "Now I hand it to my agent. I link PayPal once for this mandate. I'm not charged." |
+| 0:00 | Agent page | "AI agents are starting to buy things for us. But checkouts are full of tricks built to catch people: pre-ticked add-ons, fees that appear at the last step, charges nobody explains. An agent falls for them even more easily. This is PennyWise." |
+| 0:15 | Pick Sunrise Chakki Atta 5 kg, DemoMart. Set ₹1,000, delivery fee OK, agent pays on its own | "I tell my agent what to buy and the rules: at most ₹1,000, delivery fees only, and it may pay with PayPal on its own, inside these rules. That's my intent mandate." |
+| 0:25 | Click "Peek at the hidden costs". The store opens; PennyWise reads the product page, then the payment page | "First, a peek. PennyWise walks DemoMart's real checkout without buying anything." |
+| 0:35 | Peek result: ₹289 on the shelf, ₹471 at payment, five hidden costs marked on the page | "The atta is ₹289 on the shelf. At payment DemoMart charges ₹471: a protection plan ticked for me, a pass I never chose, two fees that only appear now, and ₹10 nobody explains." |
+| 0:45 | Click "Let my agent buy it". Link PayPal (sandbox login, approve) | "Now the same screen, but my agent shops it. I link PayPal once for this mandate. I'm not charged." |
 | 0:58 | The agent shops. Cursor taps; steps appear on the right | "The agent declines the pop-up, unticks the plan and removes the pass it never chose." |
 | 1:15 | Payment page. Red marks on the bill. "PennyWise blocked payment" card | "At payment, new fees appear and ₹10 nobody can explain. PennyWise blocks the payment. It's code, not the AI, so it can't be argued with. The agent disputes the ₹10 through the store's own help, then asks me about the fees." |
 | 1:40 | Approve the two fees | "Only I can approve extra charges, by name. The agent can't." |

@@ -20,7 +20,7 @@ import { CATEGORIES, categoryOf, DEFAULT_SKU, productBySku, protectionName, prot
 import { skyhopPage, skyhopTotal } from './skyhop';
 
 export { FLIGHT, SKYHOP_INJECTION } from './skyhop';
-export { CATEGORIES, PRODUCTS, productBySku, protectionPrice, type Product } from './products';
+export { CATEGORIES, PRODUCTS, productBySku, protectionPrice, searchProducts, type Product } from './products';
 
 export type View = 'home' | 'item' | 'basket' | 'pay';
 export type Store = 'demomart' | 'fairmart' | 'skyhop';

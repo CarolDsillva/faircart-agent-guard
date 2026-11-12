@@ -36,9 +36,12 @@ export interface Prefs {
   maxRupees: number;
   fees: string[];
   autopay: boolean;
+  /** What you last asked the agent to buy, and where. */
+  sku: string;
+  store: Store;
 }
 
-export const DEFAULT_PREFS: Prefs = { maxRupees: 1000, fees: ['delivery'], autopay: true };
+export const DEFAULT_PREFS: Prefs = { maxRupees: 1000, fees: ['delivery'], autopay: true, sku: 'DEMO-ATTA-5KG', store: 'demomart' };
 const PREFS_KEY = 'pennywise-prefs';
 
 export function loadPrefs(): Prefs | null {
@@ -63,6 +66,8 @@ const SHOP_PATH = import.meta.env.DEV ? '/shop.html' : '/shop';
 const storeQ = (s: Store) => (s === 'demomart' ? '' : `&store=${s}`);
 
 export const storeHome = (s: Store) => `${SHOP_PATH}?view=home${storeQ(s)}`;
+/** Another page of the store (basket or payment), keeping the current basket. */
+export const pageUrl = (s: Store, view: 'basket' | 'pay') => `${SHOP_PATH}?view=${view}${storeQ(s)}`;
 /** A product page, reset so the agent meets every trick the store has. */
 export const productUrl = (s: Store, sku: string) => `${SHOP_PATH}?view=item&sku=${encodeURIComponent(sku)}&reset=1${storeQ(s)}`;
 

@@ -34,10 +34,10 @@ Nothing is written for a particular product or store: the same reader, rule engi
 
 **Live demo: https://pennywise-for-paypal.onrender.com**
 
-1. **Set your rules once:** the most to spend per order and which fees are fine. **Agent pays with PayPal on its own** is on by default. Turn it off to approve each payment yourself in PayPal's pop-up. Your rules are kept in your browser; change them any time under **Your rules**.
-2. **Shop.** The store opens in the browser on the left. Switch between DemoMart and FairMart with the tabs, search, or browse the aisles.
-3. **Scan a page** (optional): on any product, basket or payment page, **Scan this page for tricks** shows what PennyWise finds and marks it on the page. No agent and no AI involved.
-4. **Open any product and click Buy this with my agent.** The agent shops from that page to payment while PennyWise boxes every trick. The pane on the right narrates each step.
+1. **Tell the agent what to buy.** The agent page asks what you want (search 183 products, or pick a suggestion), from which store (DemoMart, tricky, or FairMart, honest), the most to spend, and which fees are fine. **Agent pays with PayPal on its own** is on by default; turn it off to approve each payment yourself in PayPal.
+2. **Peek at the hidden costs** (no agent, no AI): PennyWise opens the store's real product and payment pages, reads them, and lists every charge the shelf price leaves out, marked on the page. For the ₹289 atta on DemoMart: ₹471 at payment, five hidden costs. On FairMart: exactly ₹289.
+3. **Let my agent buy it**, from the start page or straight from the peek: the same screen, but now the agent shops it. Its cursor taps through the store while PennyWise boxes every trick, and the pane on the right narrates each step.
+4. **Or browse the whole store** and hand any product to the agent, or scan any page for tricks.
 5. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
 6. With autopay on, you link PayPal once (Vault) and the agent pays by itself after PennyWise signs the cart mandate. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
 7. **Shop something else** takes you back to the store. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.

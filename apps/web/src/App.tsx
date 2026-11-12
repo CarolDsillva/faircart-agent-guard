@@ -1,14 +1,14 @@
 import type { Approval, Reason } from '@faircart/guard';
 import { formatInr, formatUsd } from '@faircart/money';
 import type { Finding } from '@faircart/schemas';
-import { productBySku } from '@faircart/shop';
+import { productBySku, searchProducts } from '@faircart/shop';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type Config, type RunView } from './api';
 import { Ledger } from './Ledger';
-import { clearMarks } from './overlay';
+import { clearMarks, mark, type MarkTone } from './overlay';
 import { PayPalPay } from './PayPalPay';
-import { DEFAULT_PREFS, displayPath, loadPrefs, productUrl, readLocation, savePrefs, storeHome, STORES, type Location, type Prefs, type Store } from './scenarios';
-import { observeDocument } from './sensor';
+import { DEFAULT_PREFS, displayPath, loadPrefs, pageUrl, productUrl, readLocation, savePrefs, storeHome, STORES, type Location, type Prefs, type Store } from './scenarios';
+import { observeDocument, whenQuiet } from './sensor';
 import { showFindings, useRun, type Entry } from './useRun';
 
 const FEE_OPTIONS: { kind: string; label: string }[] = [
@@ -18,7 +18,7 @@ const FEE_OPTIONS: { kind: string; label: string }[] = [
   { kind: 'convenience', label: 'Convenience' },
 ];
 
-type View = 'rules' | 'shop' | 'fairness';
+type View = 'start' | 'shop' | 'fairness';
 
 /** PennyWise's mark: a coin with a check. */
 export function Mark({ size = 24 }: { size?: number }) {
@@ -44,6 +44,27 @@ function MerchantTile({ store, size = 28 }: { store: Store; size?: number }) {
 
 const feeList = (fees: string[]) => (fees.length ? fees.map((f) => FEE_OPTIONS.find((o) => o.kind === f)?.label.toLowerCase() ?? f).join(', ') : 'none');
 
+/** One hidden cost found on the store's real payment page. */
+export interface HiddenCost {
+  label: string;
+  rupees: number;
+  why: string;
+  allowed: boolean;
+}
+
+/** What a peek found: the shelf price against what the store's payment page actually charges. */
+export interface PeekResult {
+  store: Store;
+  sku: string;
+  stage: 'item' | 'pay' | 'done' | 'failed';
+  shelf: number;
+  total: number | null;
+  costs: HiddenCost[];
+  tricks: Finding[];
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export function App() {
   const frame = useRef<HTMLIFrameElement>(null);
   const run = useRun(frame);
@@ -52,12 +73,15 @@ export function App() {
     api.config().then(setConfig).catch(() => setConfig(null));
   }, []);
 
-  const saved = useRef(loadPrefs());
-  const [prefs, setPrefs] = useState<Prefs>(saved.current ?? DEFAULT_PREFS);
-  const [view, setView] = useState<View>(saved.current ? 'shop' : 'rules');
+  const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs() ?? DEFAULT_PREFS);
+  // Everyone lands on the agent page: what to buy, the budget, the fees.
+  const [view, setView] = useState<View>('start');
   const [loc, setLoc] = useState<Location>({ store: 'demomart', view: 'home', sku: null, q: '', cat: null });
   const [title, setTitle] = useState('');
   const [scan, setScan] = useState<{ findings: Finding[]; busy: boolean } | null>(null);
+  const [peek, setPeek] = useState<PeekResult | null>(null);
+  /** True while PennyWise itself is moving the browser (a peek), so those loads don't end it. */
+  const steering = useRef(false);
   const loadWaiter = useRef<(() => void) | null>(null);
   const phaseRef = useRef(run.phase);
   phaseRef.current = run.phase;
@@ -66,7 +90,20 @@ export function App() {
     if (frame.current) frame.current.src = url;
   }, []);
 
-  // Open the store once, on DemoMart's front page.
+  /** Navigate and resolve once the new page has loaded (or after 8 s). */
+  const goAndWait = useCallback(
+    (url: string) => {
+      const loaded = new Promise<void>((resolve) => {
+        loadWaiter.current = resolve;
+        setTimeout(resolve, 8000);
+      });
+      go(url);
+      return loaded;
+    },
+    [go],
+  );
+
+  // Browsing the store from the top bar opens DemoMart's front page the first time.
   const opened = useRef(false);
   useEffect(() => {
     if (view === 'shop' && !opened.current) {
@@ -82,7 +119,8 @@ export function App() {
     setLoc(l);
     setTitle(frame.current?.contentDocument?.title ?? '');
     setScan(null);
-    // You browsed away from a finished run: back to shopping.
+    // You browsed away yourself: a finished run or peek gives way to shopping.
+    if (!steering.current) setPeek(null);
     if (['paid', 'stopped', 'failed', 'linking'].includes(phaseRef.current)) run.abandon();
     loadWaiter.current?.();
     loadWaiter.current = null;
@@ -91,18 +129,94 @@ export function App() {
   const sku = loc.view === 'item' ? (loc.sku ?? 'DEMO-ATTA-5KG') : null;
   const product = sku ? productBySku(sku) : null;
 
-  /** Reload the product fresh, wait for it, then hand the signed rules to the agent. */
-  const buy = useCallback(async () => {
-    if (!product) return;
-    run.abandon();
-    const loaded = new Promise<void>((resolve) => {
-      loadWaiter.current = resolve;
-      setTimeout(resolve, 8000);
-    });
-    go(productUrl(loc.store, product.sku));
-    await loaded;
-    await run.start({ maxTotalRupees: prefs.maxRupees, allowedFees: prefs.fees, autopay: prefs.autopay }, { sku: product.sku, title: product.title }, loc.store);
-  }, [go, loc.store, prefs, product, run]);
+  const remember = useCallback((p: Prefs) => {
+    setPrefs(p);
+    savePrefs(p);
+  }, []);
+
+  /** Open the product fresh and hand the signed rules to the agent, on the same screen. */
+  const buyProduct = useCallback(
+    async (store: Store, buySku: string, p: Prefs = prefs) => {
+      const item = productBySku(buySku);
+      opened.current = true;
+      setView('shop');
+      setPeek(null);
+      run.abandon();
+      steering.current = true;
+      await goAndWait(productUrl(store, item.sku));
+      steering.current = false;
+      await run.start({ maxTotalRupees: p.maxRupees, allowedFees: p.fees, autopay: p.autopay }, { sku: item.sku, title: item.title }, store);
+    },
+    [goAndWait, prefs, run],
+  );
+
+  /**
+   * Peek: PennyWise walks the store's own pages (no agent, no AI), reads what is really on them,
+   * and lists every cost the shelf price leaves out.
+   */
+  const peekProduct = useCallback(
+    async (store: Store, peekSku: string, p: Prefs = prefs) => {
+      const item = productBySku(peekSku);
+      opened.current = true;
+      setView('shop');
+      run.abandon();
+      steering.current = true;
+      const base: PeekResult = { store, sku: item.sku, stage: 'item', shelf: item.price, total: null, costs: [], tricks: [] };
+      setPeek(base);
+      try {
+        // 1. The product page, as a shopper first sees it.
+        await goAndWait(productUrl(store, item.sku));
+        let doc = frame.current?.contentDocument;
+        if (!doc) throw new Error('no page');
+        await whenQuiet(doc);
+        const itemObs = observeDocument(doc, doc.URL, 'peek-item', 1);
+        const itemFindings = (await api.peek(itemObs)).findings;
+        showFindings(itemObs, itemFindings);
+        setPeek({ ...base, tricks: itemFindings });
+        await sleep(2200);
+
+        // 2. The payment page, with whatever the store put in the basket on its own.
+        setPeek({ ...base, stage: 'pay', tricks: itemFindings });
+        await goAndWait(pageUrl(store, 'pay'));
+        doc = frame.current?.contentDocument;
+        if (!doc) throw new Error('no page');
+        await whenQuiet(doc);
+        const payObs = observeDocument(doc, doc.URL, 'peek-pay', 2);
+        const payFindings = (await api.peek(payObs)).findings;
+        // Close the store's pop-up so the bill is in view.
+        doc.querySelector<HTMLElement>('.dm-modal:not([hidden]) [data-act="pass-no"]')?.click();
+        await whenQuiet(doc);
+        const fresh = observeDocument(doc, doc.URL, 'peek-pay', 3);
+        const bill = fresh.bill;
+        const costs: HiddenCost[] = [];
+        const marks: { el: Element; label: string; tone: MarkTone }[] = [];
+        for (const r of bill?.rows ?? []) {
+          if (!r.amount || r.free) continue;
+          const el = r.elRef ? fresh.refs.get(r.elRef) : undefined;
+          const why = r.kind === 'service' ? 'Pre-ticked on the product page' : r.kind === 'membership' ? 'Put in your basket without asking' : r.kind === 'fee' ? 'Appears only at payment' : null;
+          if (!why) continue;
+          const allowed = r.kind === 'fee' && !!r.feeKind && p.fees.includes(r.feeKind);
+          costs.push({ label: r.label, rupees: r.amount, why, allowed });
+          if (el) marks.push({ el, label: why, tone: allowed ? 'ok' : 'blocked' });
+        }
+        if (bill?.difference && bill.difference > 0) {
+          costs.push({ label: 'Amount no line explains', rupees: bill.difference, why: 'Added to the total with no line on the bill', allowed: false });
+          const t = bill.rows.find((r) => r.kind === 'total');
+          const el = t?.elRef ? fresh.refs.get(t.elRef) : undefined;
+          if (el) marks.push({ el, label: `₹${bill.difference} nobody explains`, tone: 'blocked' });
+        }
+        marks[0]?.el.scrollIntoView({ block: 'center' });
+        mark(doc, 'verdict', marks);
+        const tricks = [...itemFindings, ...payFindings.filter((f) => !itemFindings.some((x) => x.title === f.title))];
+        setPeek({ ...base, stage: 'done', total: bill?.displayedTotal ?? null, costs, tricks });
+      } catch {
+        setPeek({ ...base, stage: 'failed' });
+      } finally {
+        steering.current = false;
+      }
+    },
+    [goAndWait, prefs, run],
+  );
 
   /** Scan this page: PennyWise's findings with no agent and no AI. */
   const scanPage = useCallback(async () => {
@@ -122,26 +236,27 @@ export function App() {
 
   const backToStore = () => {
     run.abandon();
+    setPeek(null);
     go(storeHome(loc.store));
   };
 
-  const busy = run.phase === 'running' || run.phase === 'paying';
+  const busy = run.phase === 'running' || run.phase === 'paying' || (peek !== null && (peek.stage === 'item' || peek.stage === 'pay'));
   const inRun = run.phase !== 'idle';
   const merchant = STORES[loc.store].merchant;
 
   return (
     <div className="app">
       <header className="appbar">
-        <button className="appbar__brand" onClick={() => setView('shop')} aria-label="PennyWise, shop">
+        <button className="appbar__brand" onClick={() => setView('start')} aria-label="PennyWise, home">
           <Mark />
           <span>PennyWise</span>
         </button>
         <nav className="appbar__nav" aria-label="Views">
-          <button className={view === 'shop' ? 'is-on' : ''} onClick={() => setView('shop')}>
-            Shop with agent
+          <button className={view === 'start' ? 'is-on' : ''} onClick={() => setView('start')}>
+            Agent
           </button>
-          <button className={view === 'rules' ? 'is-on' : ''} onClick={() => setView('rules')}>
-            Your rules
+          <button className={view === 'shop' ? 'is-on' : ''} onClick={() => setView('shop')}>
+            Store
           </button>
           <button className={view === 'fairness' ? 'is-on' : ''} onClick={() => setView('fairness')}>
             Merchant fairness
@@ -153,19 +268,25 @@ export function App() {
         </div>
       </header>
 
-      {view === 'rules' && (
-        <Rules
+      {view === 'start' && (
+        <Start
           prefs={prefs}
-          first={!saved.current}
-          onSave={(p, store) => {
-            setPrefs(p);
-            savePrefs(p);
-            saved.current = p;
-            setView('shop');
+          live={inRun || busy}
+          onPeek={(p) => {
+            remember(p);
+            void peekProduct(p.store, p.sku, p);
+          }}
+          onBuy={(p) => {
+            remember(p);
+            void buyProduct(p.store, p.sku, p);
+          }}
+          onBrowse={(p) => {
+            remember(p);
             opened.current = true;
-            if (store) {
-              run.abandon();
-              go(storeHome(store));
+            setView('shop');
+            if (!inRun) {
+              setPeek(null);
+              go(storeHome(p.store));
             }
           }}
         />
@@ -185,6 +306,7 @@ export function App() {
                 onClick={() => {
                   if (loc.store === s) return;
                   run.abandon();
+                  setPeek(null);
                   go(storeHome(s));
                 }}
               >
@@ -222,8 +344,8 @@ export function App() {
             {busy && (
               <div className="control-bar" role="status">
                 <span className="control-bar__dot" aria-hidden="true" />
-                PennyWise agent is using this tab
-                <button onClick={() => void run.stop()}>Stop</button>
+                {peek && !inRun ? 'PennyWise is reading this checkout' : 'PennyWise agent is using this tab'}
+                {inRun && <button onClick={() => void run.stop()}>Stop</button>}
               </div>
             )}
             {busy && <div className="browser__shield" aria-hidden="true" />}
@@ -232,39 +354,113 @@ export function App() {
 
         {inRun ? (
           <AgentPane run={run} store={run.store} config={config} onBack={backToStore} />
+        ) : peek ? (
+          <PeekPane peek={peek} prefs={prefs} onBuy={() => void buyProduct(peek.store, peek.sku)} onBack={() => setView('start')} />
         ) : (
-          <ShopPane loc={loc} product={product} prefs={prefs} scan={scan} onBuy={() => void buy()} onScan={() => void scanPage()} onRules={() => setView('rules')} />
+          <ShopPane loc={loc} product={product} prefs={prefs} scan={scan} onBuy={() => product && void buyProduct(loc.store, product.sku)} onScan={() => void scanPage()} onRules={() => setView('start')} />
         )}
       </main>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ Rules */
+/* ------------------------------------------------------------------ Start */
 
-function Rules({ prefs, first, onSave }: { prefs: Prefs; first: boolean; onSave: (p: Prefs, store?: Store) => void }) {
+const QUICK = ['DEMO-ATTA-5KG', 'CLE-SPARKLE-FLOOR-CLEANER-1-L', 'DAI-PASTURE-PURE-COW-GHEE-1-L', 'BAB-TINYTOES-DIAPER-PANTS-M-42-PCS'];
+
+function Start({ prefs, live, onPeek, onBuy, onBrowse }: { prefs: Prefs; live: boolean; onPeek: (p: Prefs) => void; onBuy: (p: Prefs) => void; onBrowse: (p: Prefs) => void }) {
+  const [skuSel, setSku] = useState(prefs.sku);
+  const [store, setStore] = useState<Store>(prefs.store);
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
   const [max, setMax] = useState(prefs.maxRupees);
   const [fees, setFees] = useState<string[]>(prefs.fees);
   const [autopay, setAutopay] = useState(prefs.autopay);
-  const p: Prefs = { maxRupees: max, fees, autopay };
+  const item = productBySku(skuSel);
+  const p: Prefs = { maxRupees: max, fees, autopay, sku: item.sku, store };
+  const matches = query.trim() ? searchProducts(query).slice(0, 7) : [];
 
   return (
     <div className="start">
       <div className="start__inner">
-        <p className="start__eyebrow">{first ? 'Step 1 of 2' : 'Your rules'}</p>
-        <h1>Set your agent's rules once</h1>
-        <p className="start__sub">Your agent follows these for anything you ask it to buy. PennyWise checks every checkout against them, and PayPal only pays what they allow.</p>
+        <h1>What should your agent buy?</h1>
+        <p className="start__sub">Tell it what you want and the rules it must follow. Then peek at what the store hides, or let the agent buy it while PennyWise checks every step.</p>
 
         <form
           className="composer"
           onSubmit={(e) => {
             e.preventDefault();
-            onSave(p, first ? 'demomart' : undefined);
+            onBuy(p);
           }}
         >
+          <div className="want">
+            <label className="want__search">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5" />
+                <path d="m10.5 10.5 3 3" />
+              </svg>
+              <input
+                type="search"
+                placeholder="Search 183 products: atta, ghee, detergent…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setOpen(true);
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                aria-label="What should your agent buy?"
+              />
+            </label>
+            {open && matches.length > 0 && (
+              <ul className="want__list" role="listbox">
+                {matches.map((m) => (
+                  <li key={m.sku}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={m.sku === skuSel}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setSku(m.sku);
+                        setQuery('');
+                        setOpen(false);
+                      }}
+                    >
+                      <span>{m.title}</span>
+                      <b>{formatInr(m.price * 100)}</b>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="want__pick">
+              <div>
+                <p className="want__label">Buying</p>
+                <b>{item.title}</b>
+                <span className="muted small">{formatInr(item.price * 100)} on the shelf</span>
+              </div>
+              <div className="seg" role="radiogroup" aria-label="Store">
+                {(['demomart', 'fairmart'] as Store[]).map((s) => (
+                  <button key={s} type="button" role="radio" aria-checked={store === s} className={store === s ? 'is-on' : ''} onClick={() => setStore(s)}>
+                    {STORES[s].merchant} <em className={`tag ${STORES[s].honest ? 'tag--ok' : 'tag--warn'}`}>{STORES[s].honest ? 'honest' : 'tricky'}</em>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="want__quick">
+              <span className="muted small">Try:</span>
+              {QUICK.map((k) => (
+                <button type="button" key={k} className={`chip ${k === skuSel ? 'is-on' : ''}`} onClick={() => setSku(k)}>
+                  {productBySku(k).name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="composer__rules composer__rules--stack" aria-label="Rules the agent must follow">
             <label className="rule">
-              <span>Spend at most, per order</span>
+              <span>Spend at most</span>
               <span className="rule__money">
                 ₹<input type="number" min={1} max={1000000} value={max} onChange={(e) => setMax(Number(e.target.value))} required />
               </span>
@@ -288,32 +484,143 @@ function Rules({ prefs, first, onSave }: { prefs: Prefs; first: boolean; onSave:
               Agent pays with PayPal on its own, inside these rules
             </button>
           </div>
-          <div className="composer__foot">
-            <span className="muted small">Never allowed: add-ons, insurance, passes or subscriptions you didn't pick. Anything else comes back to you.</span>
-            <button className="send" type="submit">
-              {first ? 'Save and open the store' : 'Save rules'}
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" />
-              </svg>
-            </button>
-          </div>
-        </form>
 
-        <div className="stores" aria-label="Practice stores">
-          {(['demomart', 'fairmart'] as Store[]).map((s) => (
-            <button key={s} type="button" className="store-card" onClick={() => onSave(p, s)}>
-              <MerchantTile store={s} size={36} />
+          <div className="choices">
+            <button type="button" className="choice" onClick={() => onPeek(p)}>
+              <span className="choice__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
               <span>
-                <b>
-                  Open {STORES[s].merchant} {STORES[s].honest ? <em className="tag tag--ok">honest</em> : <em className="tag tag--warn">tricky</em>}
-                </b>
-                <small>{STORES[s].blurb}</small>
+                <b>Peek at the hidden costs</b>
+                <small>PennyWise walks {STORES[store].merchant}'s checkout and shows every charge the shelf price leaves out. Nothing is bought.</small>
               </span>
             </button>
-          ))}
-        </div>
+            <button type="submit" className="choice choice--primary">
+              <span className="choice__icon" aria-hidden="true">
+                <Mark size={22} />
+              </span>
+              <span>
+                <b>Let my agent buy it</b>
+                <small>Same screen, but the agent shops it for you. PennyWise blocks anything outside your rules.</small>
+              </span>
+            </button>
+          </div>
+          {live && <p className="muted small center">Starting either one ends the agent's current run.</p>}
+        </form>
+
+        <p className="start__more">
+          Or{' '}
+          <button type="button" className="linkish" onClick={() => onBrowse(p)}>
+            browse the whole store
+          </button>{' '}
+          and hand any product to your agent.
+        </p>
       </div>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------- Peek pane */
+
+function PeekPane({ peek, prefs, onBuy, onBack }: { peek: PeekResult; prefs: Prefs; onBuy: () => void; onBack: () => void }) {
+  const item = productBySku(peek.sku);
+  const info = STORES[peek.store];
+  const extra = peek.total !== null ? peek.total - peek.shelf : 0;
+  const blocked = peek.costs.filter((c) => !c.allowed).reduce((s, c) => s + c.rupees, 0);
+  const steps: [string, boolean][] = [
+    ['Product page', peek.stage !== 'item'],
+    ['Payment page', peek.stage === 'done'],
+  ];
+  return (
+    <aside className="pane" aria-label="Peek">
+      <header className="pane__head">
+        <MerchantTile store={peek.store} size={32} />
+        <div>
+          <b>Peek: {item.title}</b>
+          <small>{info.merchant} · nothing is bought</small>
+        </div>
+        <span className={`state ${peek.stage === 'done' ? 'state--idle' : 'state--running'}`}>{peek.stage === 'done' ? 'Done' : peek.stage === 'failed' ? 'Failed' : 'Reading'}</span>
+      </header>
+      <div className="convo">
+        <ol className="peek-steps">
+          {steps.map(([l, done]) => (
+            <li key={l} className={done ? 'is-done' : ''}>
+              {l}
+            </li>
+          ))}
+        </ol>
+
+        {peek.stage === 'failed' && <div className="card card--error">PennyWise couldn't read this checkout. Try again.</div>}
+
+        {peek.stage === 'done' && peek.total !== null && (
+          <div className={`peek-sum ${extra > 0 ? '' : 'peek-sum--clean'}`}>
+            <div className="peek-sum__row">
+              <span>Shelf price</span>
+              <b>{formatInr(peek.shelf * 100)}</b>
+            </div>
+            <div className="peek-sum__row peek-sum__row--big">
+              <span>{info.merchant} charges at payment</span>
+              <b>{formatInr(peek.total * 100)}</b>
+            </div>
+            <p>{extra > 0 ? `${formatInr(extra * 100)} more than the price you saw (+${Math.round((extra / peek.shelf) * 100)}%).` : 'Exactly the price you saw. No hidden costs.'}</p>
+          </div>
+        )}
+
+        {peek.costs.length > 0 && (
+          <div className="peek-costs">
+            <p className="hint-card__head">Hidden costs, marked on the page</p>
+            <ul>
+              {peek.costs.map((c) => (
+                <li key={c.label}>
+                  <span>
+                    <b>{c.label}</b>
+                    <small>
+                      {c.why}
+                      {c.allowed ? ' · allowed by your rules' : ''}
+                    </small>
+                  </span>
+                  <span className={c.allowed ? '' : 'peek-costs__bad'}>+{formatInr(c.rupees * 100)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {peek.tricks.length > 0 && (
+          <details className="flagged" open={peek.stage !== 'done'}>
+            <summary>
+              <span className="flagged__n">{peek.tricks.length}</span> dark pattern{peek.tricks.length === 1 ? '' : 's'} on the way
+            </summary>
+            <ul>
+              {peek.tricks.map((f) => (
+                <li key={f.id}>{f.title}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {peek.stage === 'done' && (
+          <div className="buy-card">
+            <b>Now let your agent buy it</b>
+            <p className="muted small">
+              Same store, same screen. The agent removes what it can{blocked > 0 ? ` (up to ${formatInr(blocked * 100)} here)` : ''}, and PennyWise blocks anything outside your rules: up to {formatInr(prefs.maxRupees * 100)}, fees OK: {feeList(prefs.fees)}.
+            </p>
+            <button className="btn btn--primary btn--block" onClick={onBuy}>
+              <Mark size={18} /> Let my agent buy it
+            </button>
+          </div>
+        )}
+      </div>
+      <footer className="pane__foot">
+        <span className="pane__status">{peek.stage === 'done' ? 'Peek finished' : 'PennyWise is reading the checkout'}</span>
+        <button className="btn btn--quiet" onClick={onBack} disabled={peek.stage === 'item' || peek.stage === 'pay'}>
+          Change what to buy
+        </button>
+      </footer>
+    </aside>
   );
 }
 
