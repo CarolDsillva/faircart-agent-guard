@@ -59,3 +59,34 @@ describe('FairMart (web)', () => {
     expect(read('fairmart', 'pay', fair).bill?.difference).toBe(0);
   });
 });
+
+describe('the catalogue', () => {
+  it('stocks a real-looking range with unique SKUs, the atta unchanged', async () => {
+    const { PRODUCTS, productBySku } = await import('../src/shop');
+    expect(PRODUCTS.length).toBeGreaterThan(150);
+    expect(new Set(PRODUCTS.map((p) => p.sku)).size).toBe(PRODUCTS.length);
+    expect(productBySku('DEMO-ATTA-5KG')).toMatchObject({ title: 'Sunrise Chakki Atta 5 kg', price: 289, mrp: 420 });
+  });
+
+  it('lists products on the home page, each linking to its own product page', () => {
+    document.documentElement.innerHTML = `<head></head><body>${renderView('demomart', 'home', initialState('demomart'), '', 'cleaning')}</body>`;
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('main a.pcard')].map((a) => a.getAttribute('href'));
+    expect(links.length).toBe(18);
+    expect(links.every((h) => /view=item&sku=CLE-/.test(h!))).toBe(true);
+    expect(document.querySelector('.dm-modal')).toBeNull();
+  });
+
+  it('runs the same traps on any product, and the bill still adds up for FairCart', async () => {
+    const { productBySku, protectionPrice } = await import('../src/shop');
+    const p = productBySku('CLE-SPARKLE-FLOOR-CLEANER-1-L');
+    const s = initialState('demomart', p.sku);
+    expect(total('demomart', s, 'pay')).toBe(p.price + protectionPrice(p) + 99 + 15 + 9 + 10);
+    const x = read('demomart', 'pay', s);
+    expect(x.bill?.difference).toBe(10);
+    expect(x.bill!.rows.map((r) => r.label)).toContain('Damage protection (1 year)');
+    expect(x.bill!.rows.filter((r) => r.kind === 'item').every((r) => r.label.includes(p.title) || r.label === 'Item total')).toBe(true);
+    const item = read('demomart', 'item', s);
+    expect(item.controls.find((c) => c.id === 'protect')?.checked).toBe(true);
+    expect(item.controls.some((c) => c.id.startsWith('act:') && /similar|sparkle|cleanhome/i.test(c.id))).toBe(false);
+  });
+});

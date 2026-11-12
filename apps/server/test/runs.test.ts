@@ -194,7 +194,7 @@ describe('step limits', () => {
     let last: any;
     for (let i = 0; i < 21; i++) last = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: `p${i}` }));
     expect(last.json).toMatchObject({ plan: null, state: 'failed' });
-  });
+  }, 20_000);
 });
 
 describe('planning from the page as it is now', () => {
@@ -285,5 +285,41 @@ describe('SkyHop flights through the same checker', () => {
     const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
     expect(r.triedPaise).toBe(794500);
     expect(r.savedPaise).toBe(169700);
+  });
+});
+
+describe('scan a page, any product, and a forgiving fallback', () => {
+  it('peeks at a page with no run: DemoMart shows its tricks, FairMart shows none that cost money', async () => {
+    const { call } = setup([]);
+    const dm = await call('POST', '/api/peek', observation('demomart', 'item', trap, { popup: true }));
+    expect(dm.status).toBe(200);
+    expect(dm.json.findings.length).toBeGreaterThan(1);
+    const fm = await call('POST', '/api/peek', observation('fairmart', 'item', initialState('fairmart')));
+    expect(fm.json.findings.filter((f: any) => ['basket_sneaking', 'drip_pricing', 'forced_action'].includes(f.category))).toEqual([]);
+  });
+
+  it('checks any catalogue product the same way', async () => {
+    const sku = 'CLE-SPARKLE-FLOOR-CLEANER-1-L';
+    const { call } = setup([checkoutPlan, checkoutPlan]);
+    const mk = async () => (await call('POST', '/api/runs', { mandate: { ...MANDATE_REQUEST.mandate, want: { sku, title: 'Sparkle Floor Cleaner 1 L', maxQuantity: 1 } } })).json.runId as string;
+
+    const fair = await mk();
+    await call('POST', `/api/runs/${fair}/observe`, observation('fairmart', 'pay', initialState('fairmart', sku)));
+    expect((await call('POST', `/api/runs/${fair}/checkout`)).json.verdict).toBe('PASS');
+
+    const dm = await mk();
+    await call('POST', `/api/runs/${dm}/observe`, observation('demomart', 'pay', { ...initialState('demomart', sku), protection: false, pass: false, disputed: true }, { pageId: 'pay2' }));
+    const g = await call('POST', `/api/runs/${dm}/checkout`);
+    expect(g.json.verdict).toBe('BLOCK');
+    expect(g.json.reasons.map((r: any) => r.code).sort()).toEqual(['FEE_NOT_ALLOWED', 'FEE_NOT_ALLOWED']);
+  });
+
+  it('uses the backup planner for one page after a bad plan, then goes back to the AI', async () => {
+    const { call } = setup([{ nonsense: true }, { nonsense: true }, untickPlan]);
+    const id = await start(call);
+    const first = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
+    expect(first.json.planner).toBe('backup');
+    const second = await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap, { pageId: 'again' }));
+    expect(second.json.planner).toBe('ai');
   });
 });

@@ -12,7 +12,7 @@ export type PlanResult = { ok: true; plan: Plan } | { ok: false; error: string }
 
 /** Schema check, then every id must exist on the page the plan is for. */
 export function validatePlan(raw: unknown, snapshot: ScreenSnapshot, lastGuard: Reason[] | null = null): PlanResult {
-  const parsed = Plan.safeParse(raw);
+  const parsed = Plan.safeParse(fillMissingChecked(raw, snapshot));
   if (!parsed.success) return { ok: false, error: `Plan does not match the schema: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}` };
   const controls = new Set(snapshot.controls.map((c) => c.id));
   const prompts = new Set(snapshot.cues.map((c) => c.promptId).filter(Boolean));
@@ -24,6 +24,23 @@ export function validatePlan(raw: unknown, snapshot: ScreenSnapshot, lastGuard: 
     return { ok: false, error: "Do not ask the user yet: the checker marked some problems fixable. Fix them with the page controls first (dispute an unexplained amount through the store's bill help), then request checkout." };
   }
   return { ok: true, plan: parsed.data };
+}
+
+/**
+ * Models often leave out `checked` on set_control. The intent is plain from the
+ * page: flip the box. That is always an untick for the pre-ticked add-ons the
+ * agent is there to remove, and the checker still decides what may be paid.
+ */
+function fillMissingChecked(raw: unknown, snapshot: ScreenSnapshot): unknown {
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { actions?: unknown }).actions)) return raw;
+  const actions = (raw as { actions: unknown[] }).actions.map((a) => {
+    if (!a || typeof a !== 'object') return a;
+    const act = a as Record<string, unknown>;
+    if (act.tool !== 'set_control' || typeof act.checked === 'boolean') return a;
+    const current = snapshot.controls.find((c) => c.id === act.controlId)?.checked;
+    return { ...act, checked: current === true ? false : current === false ? true : false };
+  });
+  return { ...(raw as object), actions };
 }
 
 /** Ask once; if the plan is invalid, ask again with the reason; then give up. */

@@ -120,6 +120,15 @@ export function ledgerRow(run: Run) {
   };
 }
 
+const Peek = z.object({ url: z.string().url(), snapshot: z.unknown() });
+
+/** "Scan this page": PennyWise's findings for one page, with no run, no mandate and no AI. */
+export function peek(raw: unknown) {
+  const body = Peek.parse(raw);
+  const snapshot = ScreenSnapshot.parse({ ...(body.snapshot as object), journeyId: 'peek' });
+  return evaluate({ snapshot, journey: [], taps: [] }, CORE).findings;
+}
+
 export function runRoutes(deps: RunDeps) {
   const { store } = deps;
   const app = new Hono();
@@ -181,8 +190,10 @@ export function runRoutes(deps: RunDeps) {
     }
     if (run.planner === 'ai') run.plannerCalls += 1;
     const brief = buildBrief({ mandate: run.mandate, snapshot: snap, findings, lastGuard: run.lastGuard });
-    // Once the AI planner has failed in a run, the backup planner finishes it: no repeated timeouts.
+    // If the AI can't be reached, the backup planner finishes the run (no repeated timeouts).
+    // If it only returned a bad plan, the backup planner handles this page and the AI plans the next.
     let plan: Plan;
+    let plannedBy: 'ai' | 'backup' = run.planner;
     let plannerError: string | undefined;
     const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), snap, run.lastGuard) : null;
     if (ai?.ok) {
@@ -190,7 +201,8 @@ export function runRoutes(deps: RunDeps) {
     } else {
       plannerError = ai && !ai.ok ? ai.error : undefined;
       if (run.planner === 'ai') store.audit(run, 'planner', 'backup_planner', { error: plannerError });
-      run.planner = 'backup';
+      if (plannerError?.startsWith('The planner could not be reached')) run.planner = 'backup';
+      plannedBy = 'backup';
       const backup = validatePlan(backupPlan(brief), snap, run.lastGuard);
       if (!backup.ok) {
         store.fail(run, 'planner', backup.error);
@@ -199,13 +211,13 @@ export function runRoutes(deps: RunDeps) {
       plan = backup.plan;
     }
     for (const a of plan.actions) run.history.push(`${a.tool}${'controlId' in a ? ` ${a.controlId}` : ''}: ${a.explanation}`);
-    store.audit(run, 'planner', 'planned', { planner: run.planner, actions: plan.actions });
+    store.audit(run, 'planner', 'planned', { planner: plannedBy, actions: plan.actions });
     const stop = plan.actions.find((a) => a.tool === 'stop');
     const ask = plan.actions.find((a) => a.tool === 'ask_user');
     if (stop && stop.tool === 'stop') store.transition(run, 'stopped', 'planner', 'stopped', { reason: stop.reason });
     // The agent can only ask; the run waits for the human's answer.
     else if (ask && ask.tool === 'ask_user') store.transition(run, 'awaiting_human', 'planner', 'asked', { question: ask.question });
-    return c.json({ findings, plan, planner: run.planner, state: run.state, ...(plannerError ? { plannerError } : {}) });
+    return c.json({ findings, plan, planner: plannedBy, state: run.state, ...(plannerError ? { plannerError } : {}) });
   });
 
   app.post('/:id/checkout', (c) => {

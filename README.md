@@ -22,29 +22,29 @@ The vocabulary follows the Agent Payments Protocol (AP2), which PayPal supports:
 
 Built for the PayPal AI Hackathon (Devpost). MIT licensed.
 
-## Two industries, one engine
+## Any product, one engine
 
-The demo has three tasks on the home screen:
-- **Groceries, at DemoMart:** a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, and ₹10 nobody explains. It tries to charge ₹471 for a ₹289 product.
-- **Flights, at SkyHop:** pre-ticked travel insurance, a Flexi Pass and a seat added for you, a convenience fee on the last page, and "only 2 seats left" pressure. It tries to charge ₹7,945 for a ₹5,849 fare.
-- **FairMart:** an honest control store. PennyWise stays quiet and the agent pays.
+The demo is two practice stores with the same 183 products across nine aisles:
+- **DemoMart** puts a trick at every step of checkout, on every product: a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, ₹10 nobody explains, and product text written to instruct AI agents. For the ₹289 atta it tries to charge ₹471.
+- **FairMart** sells the same shelves honestly. PennyWise stays quiet and the agent pays.
 
-The same reader, rule engine and checker handle both industries. Nothing is written for a particular store. While the agent works, you see its cursor tap the page, PennyWise box each trick it finds, and the checker mark the exact bill lines it blocks.
+Nothing is written for a particular product or store: the same reader, rule engine and checker handle whatever you pick. The engine also handles a flight checkout (SkyHop, in the code and tests). While the agent works, you see its cursor tap the page, PennyWise box each trick it finds, and the checker mark the exact bill lines it blocks.
 
 ## Try it
 
 **Live demo: https://pennywise-for-paypal.onrender.com**
 
-1. On the start screen, pick a task: **Buy a 5 kg bag of atta** (DemoMart), **Book Bengaluru to Delhi on 14 Nov** (SkyHop), or the same atta from **FairMart**, the honest control.
-2. Set your rules in the composer: the most you'll spend and which fees are fine. **Agent pays with PayPal on its own** is on by default. Turn it off to approve the payment yourself in PayPal's pop-up instead.
-3. Click **Start agent**. The store opens in the browser on the left, and the agent's cursor taps through it while PennyWise boxes every trick it finds. The pane on the right narrates each step.
-4. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
-5. With autopay on, you link PayPal once (Vault) and the agent pays by itself after PennyWise signs the cart mandate. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
-6. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.
+1. **Set your rules once:** the most to spend per order and which fees are fine. **Agent pays with PayPal on its own** is on by default. Turn it off to approve each payment yourself in PayPal's pop-up. Your rules are kept in your browser; change them any time under **Your rules**.
+2. **Shop.** The store opens in the browser on the left. Switch between DemoMart and FairMart with the tabs, search, or browse the aisles.
+3. **Scan a page** (optional): on any product, basket or payment page, **Scan this page for tricks** shows what PennyWise finds and marks it on the page. No agent and no AI involved.
+4. **Open any product and click Buy this with my agent.** The agent shops from that page to payment while PennyWise boxes every trick. The pane on the right narrates each step.
+5. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
+6. With autopay on, you link PayPal once (Vault) and the agent pays by itself after PennyWise signs the cart mandate. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
+7. **Shop something else** takes you back to the store. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.
 
 Sandbox buyer for PayPal: _add the sandbox personal account email here; share the password with judges privately_.
 
-The first planning step can take 10 to 20 seconds while Gemini responds. If Gemini is unavailable, a labelled backup planner (no AI) finishes the run.
+The first planning step can take 10 to 20 seconds while Gemini responds. If Gemini is unreachable, a labelled backup planner (no AI) finishes the run. If Gemini returns a plan that doesn't fit the page, the backup planner handles that one page and Gemini plans the next.
 
 ## How it works
 

@@ -7,7 +7,7 @@ import { runAction } from './driver';
 import { mark, pointAt, type MarkTone } from './overlay';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
-import { SCENARIOS, shopUrl, type Store } from './scenarios';
+import { STORES, type Store } from './scenarios';
 
 export type { Store };
 export type Phase = 'idle' | 'linking' | 'running' | 'awaiting' | 'authorized' | 'paying' | 'paid' | 'stopped' | 'failed';
@@ -59,7 +59,7 @@ const PACE_MS = 500;
 const MONEY = new Set(['basket_sneaking', 'drip_pricing', 'subscription_trap', 'forced_action']);
 
 /** PennyWise's findings, drawn on the page where it found them. */
-function showFindings(obs: Observation, findings: Finding[]) {
+export function showFindings(obs: Observation, findings: Finding[]) {
   const doc = obs.refs && findings.length ? findings.map((f) => (f.elementRef ? obs.refs.get(f.elementRef) : undefined)).find(Boolean)?.ownerDocument : undefined;
   if (!doc) return;
   mark(
@@ -78,6 +78,8 @@ function showVerdict(obs: Observation, reasons: Reason[] | null) {
   const el = (ref: string | undefined) => (ref ? obs.refs.get(ref) : undefined);
   const doc = rows.map((r) => el(r.elRef)).find(Boolean)?.ownerDocument;
   if (!doc) return;
+  // Bring the bill into view first, so the marks don't sit under the store's sticky header.
+  el(rows.find((r) => r.kind === 'total')?.elRef)?.scrollIntoView({ block: 'center' });
   if (!reasons) {
     const total = rows.find((r) => r.kind === 'total');
     const t = el(total?.elRef);
@@ -128,6 +130,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   const [view, setView] = useState<RunView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [store, setStore] = useState<Store>('demomart');
+  const [product, setProduct] = useState<{ sku: string; title: string } | null>(null);
   const storeRef = useRef<Store>('demomart');
   const [autopay, setAutopay] = useState(false);
   const [walletLinked, setWalletLinked] = useState(false);
@@ -196,7 +199,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           if (res.planner) setPlanner(res.planner);
           if (res.planner === 'backup' && res.plannerError && !noticedBackup) {
             noticedBackup = true;
-            push({ kind: 'note', title: 'The AI planner is unavailable, so the backup planner (no AI) is finishing this run.', detail: res.plannerError, tone: 'warn' });
+            push({ kind: 'note', title: res.plannerError.startsWith('The planner could not be reached') ? 'Gemini is unreachable, so the backup planner (no AI) is finishing this run.' : 'Gemini sent an unusable plan, so the backup planner (no AI) handled this page.', detail: res.plannerError, tone: 'warn' });
           }
           if (!res.plan) {
             if (res.state === 'failed') fail(res.error ?? 'The run failed.');
@@ -284,10 +287,9 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     }
   };
 
-  const reset = useCallback((s: Store) => {
+  /** End the current run here (the server's copy simply expires). The page stays as it is. */
+  const abandon = useCallback(() => {
     generation.current += 1;
-    setStore(s);
-    storeRef.current = s;
     setPhase('idle');
     setRunId(null);
     setEntries([]);
@@ -302,15 +304,18 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setWalletUrl(null);
     autopayRef.current = false;
     taps.current = [];
-    if (frame.current) frame.current.src = shopUrl(s);
-  }, [frame]);
+    setProduct(null);
+  }, []);
 
   const start = useCallback(
-    async (m: MandateInput) => {
+    async (m: MandateInput, want: { sku: string; title: string }, s: Store) => {
       setError(null);
+      setStore(s);
+      storeRef.current = s;
+      setProduct(want);
       try {
         const { runId: id } = await api.createRun({
-          want: { sku: SCENARIOS[storeRef.current].product.sku, title: SCENARIOS[storeRef.current].product.title, maxQuantity: 1 },
+          want: { sku: want.sku, title: want.title, maxQuantity: 1 },
           maxTotalPaise: Math.round(m.maxTotalRupees * 100),
           allowedFees: m.allowedFees as never,
           autopay: m.autopay,
@@ -321,7 +326,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         push({
           kind: 'human',
           title: `You signed intent mandate ${intentMandateId(id)}.`,
-          detail: `${SCENARIOS[storeRef.current].product.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
+          detail: `${want.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
         });
         if (m.autopay) {
           setPhase('linking');
@@ -396,7 +401,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     if (!authorization) throw new Error('No authorization');
     setPhase('paying');
     const { orderId } = await api.merchantCheckout(authorization);
-    push({ kind: 'pay', title: `PayPal order created by ${SCENARIOS[storeRef.current].merchant} and checked by PennyWise: it matches what you approved.`, detail: `Order ${orderId}`, tone: 'pass' });
+    push({ kind: 'pay', title: `PayPal order created by ${STORES[storeRef.current].merchant} and checked by PennyWise: it matches what you approved.`, detail: `Order ${orderId}`, tone: 'pass' });
     return orderId;
   }, [authorization, push]);
 
@@ -432,5 +437,5 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   /** The buyer closed PayPal without approving: back to "Ready to pay". */
   const payCancelled = useCallback(() => setPhase('authorized'), []);
 
-  return { autopay, walletLinked, walletUrl, linkWallet, phase, runId, entries, findings, reasons, authorization, planner, view, error, store, onFrameLoad, reset, start, approve, stop, createOrder, captured, payFailed, payCancelled };
+  return { autopay, walletLinked, walletUrl, linkWallet, phase, runId, entries, findings, reasons, authorization, planner, view, error, store, product, onFrameLoad, abandon, start, approve, stop, createOrder, captured, payFailed, payCancelled };
 }

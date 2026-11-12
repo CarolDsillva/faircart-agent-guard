@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { ZodError } from 'zod';
 import { merchantRoutes, type MerchantDeps } from './routes/merchant';
-import { ledgerRow, runRoutes, type RunDeps } from './routes/runs';
+import { ledgerRow, peek, runRoutes, type RunDeps } from './routes/runs';
 import { BadState } from './runs';
 
 export type AppDeps = RunDeps & Pick<MerchantDeps, 'paypal' | 'paypalConfig'>;
@@ -19,6 +19,7 @@ export function createApp(deps: AppDeps) {
   });
   app.get('/healthz', (c) => c.json({ ok: true }));
   app.route('/api/runs', runRoutes(deps));
+  app.post('/api/peek', async (c) => c.json({ findings: peek(await c.req.json()) }));
   app.get('/api/ledger', (c) => c.json({ rows: deps.store.ledger().map(ledgerRow) }));
   app.route('/', merchantRoutes(deps));
   return app;

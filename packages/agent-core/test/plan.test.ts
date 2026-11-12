@@ -78,3 +78,10 @@ describe('planWithRetry', () => {
     expect(r).toEqual({ ok: false, error: expect.stringContaining('rate_limited') });
   });
 });
+
+describe('forgiving the model on obvious omissions', () => {
+  it('treats a set_control without "checked" as unticking it', () => {
+    const r = validatePlan({ actions: [{ tool: 'set_control', controlId: 'protect', explanation: 'Untick the pre-ticked plan.' }] }, snap);
+    expect(r).toEqual({ ok: true, plan: { actions: [{ tool: 'set_control', controlId: 'protect', checked: false, explanation: 'Untick the pre-ticked plan.' }] } });
+  });
+});

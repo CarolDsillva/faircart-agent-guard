@@ -93,6 +93,7 @@ export const api = {
   amend: (runId: string, approved: Approval[]) => call<{ state: RunState; mandateVersion: number }>('POST', `/api/runs/${runId}/amend`, { approved }),
   stop: (runId: string) => call<{ state: RunState }>('POST', `/api/runs/${runId}/amend`, { stop: true }),
   run: (runId: string) => call<RunView>('GET', `/api/runs/${runId}`),
+  peek: (o: Observation) => call<{ findings: Finding[] }>('POST', '/api/peek', { url: o.url, snapshot: o.snapshot }),
   ledger: () => call<{ rows: LedgerRow[] }>('GET', '/api/ledger'),
   merchantCheckout: (authorization: Authorization) => call<{ orderId: string; state: RunState }>('POST', '/shop/api/checkout', { authorization }),
   capture: (runId: string, orderId: string) => call<RunView>('POST', '/shop/api/capture', { runId, orderId }),
