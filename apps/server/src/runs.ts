@@ -30,6 +30,8 @@ export interface Run {
   mandate: Mandate;
   journey?: Journey;
   plannerCalls: number;
+  /** Consecutive times the AI couldn't be reached. Two in a row hands the rest of the run to the backup planner. */
+  aiOutages?: number;
   turns: number;
   /** 'ai' until the AI planner fails once in this run; then the labelled backup planner. */
   planner: 'ai' | 'backup';

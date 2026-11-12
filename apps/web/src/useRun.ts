@@ -203,7 +203,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           if (res.planner) setPlanner(res.planner);
           if (res.planner === 'backup' && res.plannerError && !noticedBackup) {
             noticedBackup = true;
-            push({ kind: 'note', title: res.plannerError.startsWith('The planner could not be reached') ? 'Gemini is unreachable, so the backup planner (no AI) is finishing this run.' : 'Gemini sent an unusable plan, so the backup planner (no AI) handled this page.', detail: res.plannerError, tone: 'warn' });
+            push({ kind: 'note', title: res.plannerError.startsWith('The planner could not be reached') ? 'Gemini is busy right now, so the backup planner (no AI) handled this page. Gemini plans the next one.' : 'Gemini sent an unusable plan, so the backup planner (no AI) handled this page.', detail: res.plannerError, tone: 'warn' });
           }
           if (!res.plan) {
             if (res.state === 'failed') fail(res.error ?? 'The run failed.');

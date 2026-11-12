@@ -323,3 +323,16 @@ describe('scan a page, any product, and a forgiving fallback', () => {
     expect(second.json.planner).toBe('ai');
   });
 });
+
+describe('a brief AI outage', () => {
+  it('uses the backup planner for one page, then goes back to the AI', async () => {
+    const store = new RunStore();
+    let calls = 0;
+    const provider = { plan: async () => (++calls === 1 ? Promise.reject(new Error('overloaded')) : untickPlan) };
+    const app = createApp({ store, provider, secret: 'test-secret', now: () => new Date('2026-11-12T10:00:00Z'), paypal: new MockPayPal(), paypalConfig: { clientId: 'mock-client', mode: 'mock' } });
+    const call = async (method: string, path: string, body?: unknown) => (await app.request(path, { method, headers: { 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) })).json() as Promise<any>;
+    const { runId } = await call('POST', '/api/runs', MANDATE_REQUEST);
+    expect((await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'item', trap))).planner).toBe('backup');
+    expect((await call('POST', `/api/runs/${runId}/observe`, observation('demomart', 'item', trap, { pageId: 'again' }))).planner).toBe('ai');
+  });
+});

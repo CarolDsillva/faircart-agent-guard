@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600&display=block" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1800px; height: 1200px; overflow: hidden; }
+  body { font-family: Geist, 'Segoe UI', sans-serif; color: #fff;
+    background: radial-gradient(1100px 800px at 85% 0%, #2b8ff0 0%, transparent 60%), radial-gradient(900px 700px at 0% 100%, #001545 0%, transparent 60%), linear-gradient(140deg, #001c64 0%, #003087 55%, #0a4fc4 100%); }
+  .wrap { position: absolute; inset: 0; padding: 110px 110px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 70px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 18px; font-size: 40px; font-weight: 700; margin-bottom: 44px; }
+  .brand small { font-weight: 500; color: #8fd3ff; font-size: 30px; }
+  h1 { font-size: 104px; line-height: 1.0; letter-spacing: -0.045em; font-weight: 700; }
+  h1 span { color: #5bc2f5; }
+  p.sub { margin-top: 36px; font-size: 40px; line-height: 1.35; color: #d3e1f7; font-weight: 500; }
+  .chips { margin-top: 44px; display: flex; flex-wrap: wrap; gap: 14px; }
+  .chip { font-size: 28px; font-weight: 600; padding: 12px 22px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); }
+  .card { background: #fff; color: #0a1630; border-radius: 34px; padding: 50px 50px 96px; box-shadow: 0 60px 120px -40px rgba(0,0,0,.6); position: relative; }
+  .card h3 { font-size: 26px; letter-spacing: .14em; text-transform: uppercase; color: #6b7a96; margin-bottom: 20px; }
+  .row { display: flex; justify-content: space-between; align-items: center; font-size: 34px; padding: 15px 0; border-bottom: 1px dashed #dde3ee; }
+  .row s { color: #d93a2f; font-family: 'Geist Mono', monospace; font-weight: 600; }
+  .tag { font-size: 20px; font-weight: 700; color: #fff; background: #d93a2f; border-radius: 999px; padding: 5px 13px; margin-left: 12px; }
+  .paid { display: flex; justify-content: space-between; align-items: baseline; margin-top: 26px; }
+  .paid .t { font-size: 34px; color: #6b7a96; }
+  .paid .t s { color: #d93a2f; font-family: 'Geist Mono', monospace; }
+  .paid b { font-size: 76px; font-family: 'Geist Mono', monospace; color: #003087; }
+  .pp { position: absolute; left: -34px; bottom: -34px; display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 22px; padding: 18px 26px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); font-size: 28px; font-weight: 600; color: #0a1630; }
+  .pp i { font-style: italic; font-weight: 800; font-size: 36px; }
+  .pp i.a { color: #003087; } .pp i.b { color: #009cde; }
+  .stamp { position: absolute; right: -30px; top: -40px; background: #12b76a; color: #fff; font-weight: 800; font-size: 40px; padding: 12px 24px; border-radius: 18px; transform: rotate(5deg); box-shadow: 0 20px 40px -12px rgba(18,183,106,.6); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="brand"><svg viewBox="0 0 32 32" width="58" height="58"><circle cx="16" cy="16" r="15" fill="#fff"/><circle cx="16" cy="16" r="11.4" fill="none" stroke="#5bc2f5" stroke-width="1.3" stroke-dasharray="2 2.2"/><path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#003087" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>PennyWise <small>for PayPal</small></div>
+    <h1>Your AI shops.<br/><span>Nobody tricks it.</span></h1>
+    <p class="sub">PennyWise blocks dark-pattern charges, and PayPal moves only the money you approved.</p>
+    <div class="chips"><span class="chip">Gemini agent</span><span class="chip">PayPal Orders + Vault</span><span class="chip">AG Grid</span><span class="chip">APIMatic</span><span class="chip">Render</span></div>
+  </div>
+  <div class="card">
+    <div class="stamp">Saved $7.98</div>
+    <h3>Blocked by PennyWise</h3>
+    <div class="row"><span>Protection plan<span class="tag">Pre-ticked</span></span><s>$1.99</s></div>
+    <div class="row"><span>Demo Pass<span class="tag">Sneaked in</span></span><s>$4.99</s></div>
+    <div class="row"><span>Unexplained<span class="tag">No line</span></span><s>$1.00</s></div>
+    <div class="paid"><span class="t">Store tried <s>$21.95</s></span><b>$13.97</b></div>
+    <div class="pp"><i class="a">Pay</i><i class="b" style="margin-left:-14px">Pal</i> only what you approved</div>
+  </div>
+</div>
+</body>
+</html>

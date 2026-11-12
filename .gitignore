@@ -16,3 +16,6 @@ playwright-report/
 # PennyWise ledger (local runs; on Render it lives on a persistent disk)
 /data/
 /apps/server/data/
+
+# Video renders (sources in video/ are kept)
+/video/out/

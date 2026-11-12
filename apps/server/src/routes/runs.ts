@@ -210,11 +210,16 @@ export function runRoutes(deps: RunDeps) {
     let plannerError: string | undefined;
     const ai = run.planner === 'ai' ? await planWithRetry(deps.provider, buildMessages(brief, run.history), snap, run.lastGuard) : null;
     if (ai?.ok) {
+      run.aiOutages = 0;
       plan = ai.plan;
     } else {
       plannerError = ai && !ai.ok ? ai.error : undefined;
       if (run.planner === 'ai') store.audit(run, 'planner', 'backup_planner', { error: plannerError });
-      if (plannerError?.startsWith('The planner could not be reached')) run.planner = 'backup';
+      // A brief overload shouldn't cost the whole run its AI: try again on the next page, give up after two in a row.
+      if (plannerError?.startsWith('The planner could not be reached')) {
+        run.aiOutages = (run.aiOutages ?? 0) + 1;
+        if (run.aiOutages >= 2) run.planner = 'backup';
+      }
       plannedBy = 'backup';
       const backup = validatePlan(backupPlan(brief), snap, run.lastGuard);
       if (!backup.ok) {

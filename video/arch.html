@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=block" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 675px; overflow: hidden; }
+  body { font-family: Geist, 'Segoe UI', sans-serif; color: #fff; position: relative;
+    background: radial-gradient(700px 500px at 85% 0%, #1d6fe0 0%, transparent 60%), linear-gradient(140deg, #001c64 0%, #003087 60%, #0a4fc4 100%); }
+  .title { position: absolute; left: 40px; top: 18px; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .title small { color: #8fd3ff; font-weight: 500; font-size: 16px; }
+  .col { position: absolute; top: 58px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: #8fd3ff; font-weight: 700; }
+  .box { position: absolute; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 12px; border-radius: 14px; font-size: 17px; font-weight: 600; line-height: 1.2;
+    background: rgba(255,255,255,.08); border: 1.5px solid rgba(255,255,255,.28); color: #e6eefb; transition: none; }
+  .box.on { background: #fff; color: #003087; border-color: #fff; box-shadow: 0 10px 30px -8px rgba(91,194,245,.9); }
+  .box.pp.on { background: linear-gradient(150deg, #0070e0, #003087); color: #fff; border-color: #8fd3ff; }
+  .box small { display: block; font-size: 12.5px; font-weight: 500; opacity: .8; margin-top: 3px; }
+  svg { position: absolute; inset: 0; }
+  .band { position: absolute; left: 40px; right: 40px; top: 590px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 15px; font-weight: 600; color: #cfe0f7; background: rgba(255,255,255,.06); border: 1px dashed rgba(255,255,255,.3); }
+  .cap { position: absolute; left: 40px; right: 40px; bottom: 6px; height: 34px; display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; }
+  .cap b { flex: none; width: 30px; height: 30px; border-radius: 50%; background: #5bc2f5; color: #001c64; display: grid; place-items: center; font-size: 15px; font-weight: 800; }
+</style>
+</head>
+<body>
+  <div class="title"><svg viewBox="0 0 32 32" width="28" height="28" style="position:static"><circle cx="16" cy="16" r="15" fill="#fff"/><path d="m10.5 16.4 3.6 3.6 7.6-8" stroke="#003087" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>How PennyWise works <small>for PayPal</small></div>
+  <div class="col" style="left:40px">Browser</div>
+  <div class="col" style="left:450px">PennyWise server</div>
+  <div class="col" style="left:860px">PayPal (sandbox)</div>
+  <svg width="1200" height="675"><line id="arrow" stroke="#5bc2f5" stroke-width="3" stroke-dasharray="7 6" /><circle id="dot" r="7" fill="#fff" /></svg>
+
+  <div class="box" id="you" style="left:40px;top:86px;width:300px;height:70px">You<small>your rules: what, how much, which fees</small></div>
+  <div class="box" id="store" style="left:40px;top:186px;width:300px;height:70px">Store page<small>DemoMart · FairMart</small></div>
+  <div class="box" id="sensor" style="left:40px;top:286px;width:300px;height:70px">PennyWise reader<small>FairCart engine · flags dark patterns</small></div>
+  <div class="box" id="driver" style="left:40px;top:386px;width:300px;height:70px">Agent driver<small>clicks by control id</small></div>
+
+  <div class="box" id="gemini" style="left:450px;top:186px;width:300px;height:70px">Gemini planner<small>one page at a time · no payment tools</small></div>
+  <div class="box" id="checker" style="left:450px;top:296px;width:300px;height:70px">Checker<small>plain code re-adds the bill</small></div>
+  <div class="box" id="mandate" style="left:450px;top:396px;width:300px;height:70px">Signed mandates<small>intent + cart · HMAC · single-use</small></div>
+  <div class="box" id="ledger" style="left:450px;top:496px;width:300px;height:70px">Merchant fairness<small>AG Grid ledger</small></div>
+
+  <div class="box pp" id="merchant" style="left:860px;top:186px;width:300px;height:70px">Merchant checkout<small>creates the order</small></div>
+  <div class="box pp" id="orders" style="left:860px;top:296px;width:300px;height:70px">Orders v2<small>Server SDK by APIMatic · AUTHORIZE</small></div>
+  <div class="box pp" id="vault" style="left:860px;top:396px;width:145px;height:70px">Vault v3<small>agent wallet</small></div>
+  <div class="box pp" id="hooks" style="left:1015px;top:396px;width:145px;height:70px">Webhooks<small>settle</small></div>
+
+  <div class="band">Hosted on Render · Blueprint, health check, persistent disk</div>
+  <div class="cap"><b id="num">1</b><span id="text"></span></div>
+
+<script>
+const STEPS = [
+  ['you', 'mandate', 'You sign your rules: an intent mandate.'],
+  ['store', 'sensor', 'PennyWise reads every page and flags the tricks.'],
+  ['sensor', 'gemini', 'Gemini plans the next step. It has no payment tools.'],
+  ['gemini', 'driver', 'The agent declines, unticks and removes what you didn’t ask for.'],
+  ['sensor', 'checker', 'At checkout, code re-adds the bill against your rules.'],
+  ['checker', 'mandate', 'Every cent matches: PennyWise signs a cart mandate.'],
+  ['mandate', 'orders', 'PayPal authorizes and holds the money (agent wallet via Vault).'],
+  ['orders', 'checker', 'PennyWise reads the PayPal order back, line by line.'],
+  ['orders', 'hooks', 'Only then is it captured. The webhook settles it.'],
+  ['checker', 'ledger', 'Every run lands in Merchant fairness.'],
+];
+const STEP = 1.0;
+window.LOOP = STEPS.length * STEP;
+const $ = (id) => document.getElementById(id);
+const center = (id) => { const e = $(id); return [e.offsetLeft + e.offsetWidth / 2, e.offsetTop + e.offsetHeight / 2]; };
+const ease = (x) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
+window.seek = (t) => {
+  t = t % window.LOOP;
+  const i = Math.floor(t / STEP);
+  const p = ease((t - i * STEP) / (STEP * 0.7));
+  const [a, b, text] = STEPS[i];
+  document.querySelectorAll('.box').forEach((x) => x.classList.remove('on'));
+  $(a).classList.add('on');
+  if (p > 0.85) $(b).classList.add('on');
+  if (i === 6) $('vault').classList.add('on');
+  const [x1, y1] = center(a);
+  const [x2, y2] = center(b);
+  const ar = $('arrow');
+  ar.setAttribute('x1', x1); ar.setAttribute('y1', y1); ar.setAttribute('x2', x2); ar.setAttribute('y2', y2);
+  $('dot').setAttribute('cx', x1 + (x2 - x1) * p);
+  $('dot').setAttribute('cy', y1 + (y2 - y1) * p);
+  $('num').textContent = i + 1;
+  $('text').textContent = text;
+};
+window.ready = document.fonts.ready.then(() => 'ok');
+</script>
+</body>
+</html>
