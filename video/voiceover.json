@@ -1,0 +1,52 @@
+[
+  {
+    "at": 0.4,
+    "slot": 4.6,
+    "text": "AI agents are starting to shop for us, and pay with our PayPal."
+  },
+  {
+    "at": 5.4,
+    "slot": 14.4,
+    "text": "But checkouts are built to trick. A protection plan, already ticked. A pass slipped into your basket. Fees that only appear at payment. And a dollar nobody explains. An eleven dollar coffee becomes almost twenty-two."
+  },
+  {
+    "at": 20.3,
+    "slot": 6.0,
+    "text": "A person might notice. An AI agent won't. Some pages even write instructions to it."
+  },
+  {
+    "at": 26.8,
+    "slot": 5.0,
+    "text": "Meet PennyWise for PayPal: a guard between your agent and your money."
+  },
+  {
+    "at": 32.6,
+    "slot": 30.8,
+    "text": "Here's the product demo. You give your agent one job: this coffee, at most twenty-five dollars, delivery fees only. PennyWise numbers every trick on the page. The agent declines the pop-up, unticks the plan, and removes a pass it never chose. At payment, PennyWise blocks two surprise fees and a dollar no line explains. That's plain code, not AI. Only you can allow the fees. Then PayPal moves exactly thirteen ninety-seven."
+  },
+  {
+    "at": 64.4,
+    "slot": 8.3,
+    "text": "Peek works on any of a hundred and seventy-four products. See what the shelf price hides, with nothing bought."
+  },
+  {
+    "at": 73.4,
+    "slot": 20.2,
+    "text": "And this is live. A Gemini agent shops olive oil, sped up. It plans one page at a time, and it has no tool that can pay. When fees appear outside your rules, PennyWise stops it and asks you. Only then do you log in to PayPal."
+  },
+  {
+    "at": 94.4,
+    "slot": 11.3,
+    "text": "Under the hood, PayPal authorizes and holds the money. PennyWise reads the order back line by line, and only then is it captured. Any mismatch, and it's voided."
+  },
+  {
+    "at": 106.4,
+    "slot": 5.8,
+    "text": "Built with AG Grid, APIMatic's PayPal SDK, Gemini, and Render."
+  },
+  {
+    "at": 112.8,
+    "slot": 5.0,
+    "text": "The AI proposes. PennyWise checks. PayPal moves only the money you approved."
+  }
+]
