@@ -57,6 +57,18 @@ function box(el: Element) {
   return { x: r.left + (win?.scrollX ?? 0), y: r.top + (win?.scrollY ?? 0), w: r.width, h: r.height };
 }
 
+/**
+ * Bring an element into view inside its own document only. Element.scrollIntoView would also
+ * scroll every page around the frame, which made the landing page jump about during runs.
+ */
+export function reveal(el: Element, smooth = true) {
+  const win = el.ownerDocument.defaultView;
+  if (!win) return;
+  const r = el.getBoundingClientRect();
+  if (r.top >= 80 && r.bottom <= win.innerHeight - 40) return;
+  win.scrollTo({ top: Math.max(0, r.top + win.scrollY - win.innerHeight / 2 + r.height / 2), behavior: smooth ? 'smooth' : 'auto' });
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Glide the agent cursor to an element, then show a tap. */
@@ -65,7 +77,7 @@ export async function pointAt(el: Element, label = 'Agent') {
   const l = layer(doc);
   // The page is about to change: old marks would point at the wrong place. Fresh ones follow the next reading.
   l.querySelectorAll('.fc-mark').forEach((m) => m.remove());
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  reveal(el);
   await sleep(350);
   let c = l.querySelector<HTMLElement>('.fc-cursor');
   if (!c) {

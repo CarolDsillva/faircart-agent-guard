@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, type Config, type RunView } from './api';
 import { Home } from './Home';
 import { Ledger } from './Ledger';
-import { clearMarks, mark, type MarkTone } from './overlay';
+import { clearMarks, mark, reveal, type MarkTone } from './overlay';
 import { PayPalPay } from './PayPalPay';
 import { DEFAULT_PREFS, displayPath, loadPrefs, pageUrl, productUrl, readLocation, savePrefs, storeHome, STORES, type Location, type Prefs, type Store } from './scenarios';
 import { observeDocument, whenQuiet } from './sensor';
@@ -204,7 +204,7 @@ export function App() {
           const el = t?.elRef ? fresh.refs.get(t.elRef) : undefined;
           if (el) marks.push({ el, label: `$${bill.difference.toFixed(2)} nobody explains`, tone: 'blocked' });
         }
-        marks[0]?.el.scrollIntoView({ block: 'center' });
+        if (marks[0]) reveal(marks[0].el, false);
         mark(doc, 'verdict', marks);
         const tricks = [...itemFindings, ...payFindings.filter((f) => !itemFindings.some((x) => x.title === f.title))];
         setPeek({ ...base, stage: 'done', total: bill?.displayedTotal ?? null, costs, tricks });
@@ -243,40 +243,10 @@ export function App() {
   const inRun = run.phase !== 'idle';
   const merchant = STORES[loc.store].merchant;
 
-  /* ---- Guided demo: the whole story, hands-free. */
-  const [playing, setPlaying] = useState(false);
-  const playingRef = useRef(false);
-  const stopPlaying = () => {
-    playingRef.current = false;
-    setPlaying(false);
-  };
-  const playDemo = useCallback(async () => {
-    const p: Prefs = { ...DEFAULT_PREFS, autopay: true };
-    remember(p);
-    playingRef.current = true;
-    setPlaying(true);
-    await peekProduct(p.store, p.sku, p);
-    await sleep(4000);
-    if (!playingRef.current) return;
-    await buyProduct(p.store, p.sku, p);
-  }, [buyProduct, peekProduct, remember]);
+  const playing = false;
+  const stopPlaying = () => undefined;
 
-  // In the guided demo, approve the fees after a pause, so viewers see the question first.
-  useEffect(() => {
-    if (!playing) return;
-    if (run.phase === 'awaiting') {
-      const fees = run.reasons.filter((r) => r.code === 'FEE_NOT_ALLOWED' && r.subject && r.paise !== undefined);
-      const t = setTimeout(() => {
-        if (!playingRef.current) return;
-        if (fees.length) void run.approve(fees.map((f) => ({ label: f.subject!, kind: feeKindOf(f.subject!) as Approval['kind'], paise: f.paise! })));
-        else stopPlaying();
-      }, 4500);
-      return () => clearTimeout(t);
-    }
-    if (['linking', 'authorized', 'paid', 'stopped', 'failed'].includes(run.phase)) stopPlaying();
-  }, [playing, run.phase, run.reasons, run]);
-
-  const toStage = () => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const toStage = () => document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
     <div className="app">
@@ -292,10 +262,18 @@ export function App() {
             className={view === 'home' ? 'is-on' : ''}
             onClick={() => {
               setView('home');
+              setTimeout(() => document.querySelector('.home')?.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+            }}
+          >
+            Product
+          </button>
+          <button
+            onClick={() => {
+              setView('home');
               setTimeout(toStage, 0);
             }}
           >
-            Live demo
+            Try it yourself
           </button>
           <button className={view === 'fairness' ? 'is-on' : ''} onClick={() => setView('fairness')}>
             Merchant fairness
@@ -310,20 +288,12 @@ export function App() {
       {view === 'fairness' && <Ledger />}
 
       <div className="home-wrap" hidden={view !== 'home'}>
-        <Home
-          onPlay={() => {
-            toStage();
-            void playDemo();
-          }}
-          onTry={toStage}
-        >
+        <Home onTry={toStage}>
           <section className="stage" id="demo" aria-label="Live demo">
             <DemoControls
               prefs={prefs}
               locked={busy}
-              playing={playing}
               onChange={remember}
-              onPlay={() => void playDemo()}
               onPeek={() => {
                 stopPlaying();
                 void peekProduct(prefs.store, prefs.sku);
@@ -508,17 +478,13 @@ const QUICK = ['DEMO-COFFEE-12OZ', 'PAN-GOLDEN-VALLEY-EXTRA-VIRGIN-OLIVE-OIL-1-L
 function DemoControls({
   prefs,
   locked,
-  playing,
   onChange,
-  onPlay,
   onPeek,
   onBuy,
 }: {
   prefs: Prefs;
   locked: boolean;
-  playing: boolean;
   onChange: (p: Prefs) => void;
-  onPlay: () => void;
   onPeek: () => void;
   onBuy: () => void;
 }) {
@@ -615,9 +581,6 @@ function DemoControls({
         </button>
       </div>
       <div className="controls__actions">
-        <button className="act act--play" onClick={onPlay} disabled={locked || playing}>
-          <span aria-hidden="true">▶</span> {playing ? 'Playing the demo…' : 'Play the demo'}
-        </button>
         <button className="act" onClick={onPeek} disabled={locked}>
           Peek at hidden costs
         </button>
@@ -863,11 +826,13 @@ function useElapsed(running: boolean, since: Date | undefined) {
 function AgentPane({ run, store, config, onBack }: { run: Run; store: Store; config: Config | null; onBack: () => void }) {
   const merchant = STORES[store].merchant;
   const task = run.product ? `Buy ${run.product.title}` : 'Shopping';
-  const end = useRef<HTMLDivElement>(null);
+  const convo = useRef<HTMLDivElement>(null);
   const running = run.phase === 'running' || run.phase === 'paying';
   const elapsed = useElapsed(running, run.entries[0]?.at);
   useEffect(() => {
-    void end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    // Scroll the chat itself, never the page around it.
+    const c = convo.current;
+    if (c) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
   }, [run.entries.length, run.phase, run.findings.length]);
 
   const status =
@@ -902,7 +867,7 @@ function AgentPane({ run, store, config, onBack }: { run: Run; store: Store; con
         <span className={`state state--${run.phase}`}>{status}</span>
       </header>
 
-      <div className="convo">
+      <div className="convo" ref={convo}>
         {first && (
           <div className="msg msg--you">
             <p>{task}</p>
@@ -985,7 +950,6 @@ function AgentPane({ run, store, config, onBack }: { run: Run; store: Store; con
             {run.error}
           </div>
         )}
-        <div ref={end} />
       </div>
 
       <footer className="pane__foot">

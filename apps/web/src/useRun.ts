@@ -4,7 +4,7 @@ import type { Finding, TapEvent } from '@faircart/schemas';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError, type RunView } from './api';
 import { runAction } from './driver';
-import { mark, pointAt, type MarkTone } from './overlay';
+import { mark, pointAt, reveal, type MarkTone } from './overlay';
 import { observeDocument, whenQuiet, type Observation } from './sensor';
 
 import { STORES, type Store } from './scenarios';
@@ -73,13 +73,14 @@ export function showFindings(obs: Observation, findings: Finding[]) {
 }
 
 /** The checker's verdict, drawn on the bill lines it is about. */
-function showVerdict(obs: Observation, reasons: Reason[] | null) {
+export function showVerdict(obs: Observation, reasons: Reason[] | null) {
   const rows = obs.bill?.rows ?? [];
   const el = (ref: string | undefined) => (ref ? obs.refs.get(ref) : undefined);
   const doc = rows.map((r) => el(r.elRef)).find(Boolean)?.ownerDocument;
   if (!doc) return;
   // Bring the bill into view first, so the marks don't sit under the store's sticky header.
-  el(rows.find((r) => r.kind === 'total')?.elRef)?.scrollIntoView({ block: 'center' });
+  const totalEl = el(rows.find((r) => r.kind === 'total')?.elRef);
+  if (totalEl) reveal(totalEl, false);
   if (!reasons) {
     const total = rows.find((r) => r.kind === 'total');
     const t = el(total?.elRef);

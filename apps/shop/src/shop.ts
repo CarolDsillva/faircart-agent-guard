@@ -332,7 +332,8 @@ export function renderView(store: Store, view: View, s: ShopState, q = '', cat: 
   ${store === 'demomart' && view !== 'home' ? popup() : ''}`;
 }
 
-const key = (store: Store) => `faircart-shop-${store}`;
+/** Each store frame keeps its own basket: the frame's name (the product demo's is "pw-demo") namespaces it. */
+const key = (store: Store) => `faircart-shop-${store}${typeof window !== 'undefined' && window.name ? `-${window.name}` : ''}`;
 
 export function loadState(store: Store): ShopState {
   try {
