@@ -1,5 +1,5 @@
 import type { Bill, BillRow } from '@faircart/adapters';
-import { INR_PER_USD, paiseToUsdCents, toPaise } from '@faircart/money';
+import { perUsd, toPaise, toUsdCents } from '@faircart/money';
 import type { Finding, ScreenSnapshot } from '@faircart/schemas';
 import { AUTHZ_TTL_MS, signAuthorization, type Authorization, type AuthorizationLine } from './authz';
 import { isApproved, type Mandate } from './mandate';
@@ -81,7 +81,7 @@ export function guard(input: GuardInput): GuardResult {
   } else {
     const paise = amountOf(productRow);
     computed += paise;
-    lines.push({ label: mandate.want.title, kind: 'product', qty: 1, paise, usdCents: paiseToUsdCents(paise) });
+    lines.push({ label: mandate.want.title, kind: 'product', qty: 1, paise, usdCents: toUsdCents(paise, mandate.currency) });
   }
 
   for (const r of bill.rows) {
@@ -104,7 +104,7 @@ export function guard(input: GuardInput): GuardResult {
       const kind = r.feeKind ?? 'other';
       const cap = mandate.feeCapsPaise?.[kind];
       const allowed = (mandate.allowedFees.includes(kind) && (cap === undefined || paise <= cap)) || isApproved(mandate, r.label, paise);
-      if (allowed) lines.push({ label: r.label, kind: 'fee', qty: 1, paise, usdCents: paiseToUsdCents(paise) });
+      if (allowed) lines.push({ label: r.label, kind: 'fee', qty: 1, paise, usdCents: toUsdCents(paise, mandate.currency) });
       else reasons.push({ code: 'FEE_NOT_ALLOWED', label: `"${r.label}" wasn't in your instructions`, subject: r.label, paise, fixable: hasRemoveControl(snapshot, r.label) });
     }
   }
@@ -138,7 +138,7 @@ export function guard(input: GuardInput): GuardResult {
       lines,
       totalPaise,
       totalUsdCents: lines.reduce((s, l) => s + l.usdCents, 0),
-      rate: { inrPerUsd: INR_PER_USD },
+      rate: { inrPerUsd: perUsd(mandate.currency) },
       issuedAt,
       expiresAt: new Date(input.now.getTime() + AUTHZ_TTL_MS).toISOString(),
     },

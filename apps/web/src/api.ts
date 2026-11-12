@@ -86,7 +86,7 @@ export interface Config {
 
 export const api = {
   config: () => call<Config>('GET', '/api/config'),
-  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees' | 'autopay'>) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate }),
+  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees' | 'autopay' | 'currency'>) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate }),
   observe: (runId: string, o: Observation, taps: TapEvent[], plan = true) =>
     call<ObserveResult>('POST', `/api/runs/${runId}/observe`, { seq: o.seq, pageId: o.pageId, url: o.url, snapshot: o.snapshot, bill: o.bill, taps, plan }),
   checkout: (runId: string) => call<GuardResult>('POST', `/api/runs/${runId}/checkout`),

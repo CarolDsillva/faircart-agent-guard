@@ -1,7 +1,7 @@
 import { addSnapshot, addTap } from '@faircart/adapters';
 import { backupPlan, buildBrief, buildMessages, planWithRetry, validatePlan, type LLMProvider, type Plan } from '@faircart/agent-core';
 import { amendMandate, Approval, guard, Mandate } from '@faircart/guard';
-import { formatInr, toPaise } from '@faircart/money';
+import { formatMoney, toPaise } from '@faircart/money';
 import { CORE, evaluate } from '@faircart/rules';
 import { FeeKind, ScreenSnapshot, TapEvent } from '@faircart/schemas';
 import { Hono } from 'hono';
@@ -31,7 +31,7 @@ const Bill = z.object({
   unreadable: z.array(z.string()),
 });
 
-const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true, autopay: true }) });
+const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true, autopay: true, currency: true }) });
 const Observe = z.object({
   seq: z.number().int(),
   pageId: z.string().min(1).max(200),
@@ -72,7 +72,7 @@ function removable(controls: { label: string }[], label: string): boolean {
 
 /** "Add 1-year freshness protection for ₹49" → "1-year freshness protection". */
 function addOnName(label: string): string {
-  return label.replace(/^\s*(add|include|get)\s+/i, '').replace(/\s+(for|at|@)\s+₹\s?[\d,.]+\s*$/i, '').trim() || label;
+  return label.replace(/^\s*(add|include|get)\s+/i, '').replace(/\s+(for|at|@)\s+(?:₹|\$)\s?[\d,.]+\s*$/i, '').trim() || label;
 }
 
 /** "DemoMart tried ₹471. You paid ₹313." */
@@ -259,7 +259,7 @@ export function runRoutes(deps: RunDeps) {
     // Keep what the human didn't answer (an amount to question with the store) so the agent goes straight to it.
     const rest = (run.lastGuard ?? []).filter((r) => !(r.code === 'FEE_NOT_ALLOWED' && body.approved.some((a) => a.label === r.subject && a.paise === r.paise)));
     run.lastGuard = rest.length ? rest : null;
-    run.history.push(`The user approved: ${body.approved.map((a) => `${a.label} ${formatInr(a.paise)}`).join(', ')}. Request checkout again.`);
+    run.history.push(`The user approved: ${body.approved.map((a) => `${a.label} ${formatMoney(a.paise, run.mandate.currency)}`).join(', ')}. Request checkout again.`);
     store.transition(run, 'shopping', 'human', 'amended', { version: run.mandate.version, approved: body.approved });
     return c.json({ state: run.state, mandateVersion: run.mandate.version });
   });

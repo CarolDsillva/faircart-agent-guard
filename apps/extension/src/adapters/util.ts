@@ -19,7 +19,7 @@ export function text(el: Element | null | undefined): string {
 
 /** "₹3,490.00", "Rs. 99", "₹ 15" → number. Returns null when no amount is present. */
 export function parseRupees(s: string | null | undefined): number | null {
-  const m = /(?:₹|Rs\.?|INR)\s*(-?[\d,]+(?:\.\d+)?)/i.exec(s ?? '');
+  const m = /(?:₹|Rs\.?|INR|US\$|USD|\$)\s*(-?[\d,]+(?:\.\d+)?)/i.exec(s ?? '');
   if (!m) return null;
   const n = Number(m[1]!.replace(/,/g, ''));
   return Number.isFinite(n) ? n : null;
@@ -27,7 +27,7 @@ export function parseRupees(s: string | null | undefined): number | null {
 
 /** Count of rupee amounts in a string. */
 export function rupeeCount(s: string): number {
-  return (s.match(/(?:₹|Rs\.?)\s*-?[\d,]+/gi) ?? []).length;
+  return (s.match(/(?:₹|Rs\.?|US\$|\$)\s*-?[\d,]+/gi) ?? []).length;
 }
 
 export function isVisible(el: Element): boolean {

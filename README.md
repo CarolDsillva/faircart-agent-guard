@@ -1,14 +1,14 @@
 # PennyWise for PayPal
 
-*Checkout protection for people and their AI agents. Built on PennyWise, an open dark-pattern engine for Indian e-commerce.*
+*Checkout protection for people and their AI agents. Built on FairCart, our open dark-pattern engine, first written for Indian e-commerce and now reading checkouts in dollars too.*
 
-**AI agents are starting to shop for us. Stores are built to trick shoppers, and an agent is easier to trick than a person.** It won't notice a protection plan that's already ticked, a fee that only appears at payment, ₹10 in the total that no line explains, or text on the page written to manipulate it.
+**AI agents are starting to shop for us. Stores are built to trick shoppers, and an agent is easier to trick than a person.** It won't notice a protection plan that's already ticked, a fee that only appears at payment, a dollar in the total that no line explains, or text on the page written to manipulate it.
 
 PennyWise is a **mandate guard for agent payments**: the layer that decides when an AI agent may pay with your PayPal, and lets it pay **on its own** only when the purchase matches what you signed.
 
 > **The AI proposes. PennyWise sees. Code decides. PayPal moves only the money you approved.**
 
-In the demo, you sign an **intent mandate** ("5 kg atta, at most ₹350, delivery fees only") and link PayPal once. An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **₹471** for a **₹289** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the ₹10 nobody explained. It asks you about the two fees it can't remove. When the bill matches, PennyWise signs a **cart mandate** and the agent pays by itself, with no pop-up. PayPal holds **₹313**, PennyWise checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried ₹471. You paid ₹313. You saved ₹158.*
+In the demo, you sign an **intent mandate** ("a 12 oz bag of whole bean coffee, at most $25, delivery fees only"). An AI agent then shops DemoMart, a store full of deliberate dark patterns that tries to charge **$21.95** for an **$11.49** product. The agent unticks the protection plan, removes the pass it never chose, and disputes the $1.00 nobody explained. It asks you about the two fees it can't remove. When the bill matches, PennyWise signs a **cart mandate**; you log in to PayPal once, at the end, and the agent pays by itself. PayPal holds **$13.97**, PennyWise checks the PayPal order line by line, and only then is it captured. The receipt says: *DemoMart tried $21.95. You paid $13.97. You saved $7.98.*
 
 ### Why this should exist inside PayPal
 
@@ -25,7 +25,7 @@ Built for the PayPal AI Hackathon (Devpost). MIT licensed.
 ## Any product, one engine
 
 The demo is two practice stores with the same 183 products across nine aisles:
-- **DemoMart** puts a trick at every step of checkout, on every product: a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, ₹10 nobody explains, and product text written to instruct AI agents. For the ₹289 atta it tries to charge ₹471.
+- **DemoMart** puts a trick at every step of checkout, on every product: a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, $1.00 nobody explains, and product text written to instruct AI agents. For the $11.49 coffee it tries to charge $21.95.
 - **FairMart** sells the same shelves honestly. PennyWise stays quiet and the agent pays.
 
 Nothing is written for a particular product or store: the same reader, rule engine and checker handle whatever you pick. The engine also handles a flight checkout (SkyHop, in the code and tests). While the agent works, you see its cursor tap the page, PennyWise box each trick it finds, and the checker mark the exact bill lines it blocks.
@@ -34,12 +34,12 @@ Nothing is written for a particular product or store: the same reader, rule engi
 
 **Live demo: https://pennywise-for-paypal.onrender.com**
 
-1. **Tell the agent what to buy.** The agent page asks what you want (search 183 products, or pick a suggestion), from which store (DemoMart, tricky, or FairMart, honest), the most to spend, and which fees are fine. **Agent pays with PayPal on its own** is on by default; turn it off to approve each payment yourself in PayPal.
-2. **Peek at the hidden costs** (no agent, no AI): PennyWise opens the store's real product and payment pages, reads them, and lists every charge the shelf price leaves out, marked on the page. For the ₹289 atta on DemoMart: ₹471 at payment, five hidden costs. On FairMart: exactly ₹289.
-3. **Let my agent buy it**, from the start page or straight from the peek: the same screen, but now the agent shops it. Its cursor taps through the store while PennyWise boxes every trick, and the pane on the right narrates each step.
-4. **Or browse the whole store** and hand any product to the agent, or scan any page for tricks.
+1. **Press Play the demo.** The live store and agent sit right on the landing page. The guided demo runs the whole story by itself: a peek at the hidden costs, the agent shopping, PennyWise blocking the payment, the fees approved, and the signed cart. PayPal asks you to log in only at the very end, to pay.
+2. **Or drive it yourself** from the bar above the store: pick what to buy (180 products, or a popular pick), DemoMart (tricky) or FairMart (honest), the most to spend, and which fees are fine.
+3. **Peek at hidden costs** (no agent, no AI): PennyWise opens the store's real product and payment pages, reads them, and lists every charge the shelf price leaves out, marked on the page. For the $11.49 coffee on DemoMart: $21.95 at payment, five hidden costs. On FairMart: exactly $11.49.
+4. **Let my agent buy it:** the same screen, but now the agent shops it. Its cursor taps through the store while PennyWise boxes every trick, and the pane on the right narrates each step. You can also browse the store and scan any page for tricks.
 5. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
-6. With autopay on, you link PayPal once (Vault) and the agent pays by itself after PennyWise signs the cart mandate. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
+6. With autopay on, once PennyWise signs the cart mandate you log in to PayPal (Vault, sandbox) and the agent pays by itself. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
 7. **Shop something else** takes you back to the store. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.
 
 Sandbox buyer for PayPal: _add the sandbox personal account email here; share the password with judges privately_.
@@ -75,8 +75,8 @@ The first planning step can take 10 to 20 seconds while Gemini responds. If Gemi
 
 - **Only you can widen your instructions.** The agent can ask; it can't approve. Approvals match exact labels and amounts the checker raised.
 - **An unexplained amount can never be approved.** The agent questions it through the store's bill help, or the run stops.
-- **Page text is data.** DemoMart's product description tells AI assistants the protection plan is "mandatory". The planner only sees a structured page brief, with page text marked untrusted. And even if a model believed it, the checker blocks the ₹49.
-- **Money is integer paise and cents**, never floats. PayPal amounts are converted per line at a fixed, displayed demo rate (₹88 = US$1), so the order always reconciles.
+- **Page text is data.** DemoMart's product description tells AI assistants the protection plan is "mandatory". The planner only sees a structured page brief, with page text marked untrusted. And even if a model believed it, the checker blocks the $1.99.
+- **Money is integer minor units** (cents, or paise for rupee stores), never floats. The demo stores price in US dollars, so PayPal gets the same cents the checker approved; rupee stores convert per line at a fixed, displayed rate (₹88 = US$1), so the order always reconciles.
 
 ### PayPal
 
@@ -90,7 +90,7 @@ The first planning step can take 10 to 20 seconds while Gemini responds. If Gemi
 ### Payments ledger (AG Grid)
 
 The console's **Payments ledger** view is built with **AG Grid** (Community, MIT). It shows every finished agent run on the server:
-- what the store tried to charge, what PayPal moved (₹ and US$) and what PennyWise saved;
+- what the store tried to charge, what PayPal moved and what PennyWise saved;
 - who approved the payment (the agent wallet, or you in PayPal), the intent and cart mandate ids, and the PayPal order;
 - a second grid of every charge PennyWise blocked, by dark pattern ("Pre-ticked add-on", "Added without your choice", "Unexplained amount").
 

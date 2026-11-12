@@ -29,3 +29,15 @@ describe('money', () => {
     expect(centsToPayPal(355)).toBe('3.55');
   });
 });
+
+describe('dollar stores', () => {
+  it('sends US cents to PayPal unchanged and formats dollars', async () => {
+    const { formatMoney, perUsd, toUsdCents } = await import('../src/index');
+    expect(toUsdCents(1397, 'USD')).toBe(1397);
+    expect(toUsdCents(28900)).toBe(328);
+    expect(perUsd('USD')).toBe(1);
+    expect(formatMoney(1397, 'USD')).toBe('$13.97');
+    expect(formatMoney(100, 'USD')).toBe('$1.00');
+    expect(formatMoney(28900)).toBe('₹289');
+  });
+});

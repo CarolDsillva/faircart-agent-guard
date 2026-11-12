@@ -80,7 +80,7 @@ export function offers(): string {
   return `<section class="offers" aria-label="Offers">
     <h3>Offers for you</h3>
     <ul>
-      <li><b>Bank offer</b> 10% instant discount with HDFC Bank credit cards</li>
+      <li><b>Card offer</b> 5% back with the DemoMart credit card</li>
       <li><b>PayPal</b> Pay with PayPal for buyer protection on every order</li>
       <li><b>First order</b> Free delivery on your first three orders</li>
     </ul>
@@ -89,11 +89,11 @@ export function offers(): string {
 
 export function reviews(honest = false): string {
   const items: [string, number, string, string][] = [
-    ['Meera R.', 5, 'Soft rotis every time', 'Fresh stock, nicely sealed bag. Rotis stay soft till dinner.'],
-    ['Arjun K.', 4, 'Good atta, delivery was quick', 'Arrived in about 15 minutes. Slightly coarse but tastes great.'],
+    ['Maya R.', 5, 'My new favourite', 'Fresh and well packed. Exactly as described.'],
+    ['Daniel K.', 4, 'Good value, quick delivery', 'Arrived the same afternoon. Would buy again.'],
     honest
       ? ['Farah S.', 5, 'What you see is what you pay', 'Price on the page was the price at checkout. No surprises.']
-      : ['Farah S.', 3, 'Watch the add-ons at checkout', 'Atta is fine. The protection plan was already ticked in my cart, so check before you pay.'],
+      : ['Sofia L.', 3, 'Watch the add-ons at checkout', 'Product is fine. The protection plan was already ticked in my cart, so check before you pay.'],
   ];
   return `<section class="reviews" aria-label="Customer reviews">
     <div class="reviews__head">
@@ -129,11 +129,11 @@ export function richFooter(name: string): string {
   return `<footer class="dm-foot">
     <div class="dm-foot__cols">
       <div><b>${name}</b><span>About us</span><span>Careers</span><span>Press</span><span>Blog</span></div>
-      <div><b>Help</b><span>Customer support</span><span>Returns and refunds</span><span>Delivery areas</span><span>Contact us</span></div>
-      <div><b>Policies</b><span>Terms of use</span><span>Privacy</span><span>Cancellations</span><span>Grievance redressal</span></div>
+      <div><b>Help</b><span>Customer support</span><span>Returns and refunds</span><span>Shipping</span><span>Contact us</span></div>
+      <div><b>Policies</b><span>Terms of use</span><span>Privacy</span><span>Cancellations</span><span>Accessibility</span></div>
       <div><b>Get the app</b><span class="badge-store">App Store</span><span class="badge-store">Google Play</span></div>
     </div>
-    <div class="dm-foot__pay"><span>We accept</span><i>PayPal</i><i>UPI</i><i>Visa</i><i>Mastercard</i><i>RuPay</i><i>Net banking</i></div>
+    <div class="dm-foot__pay"><span>We accept</span><i>PayPal</i><i>Venmo</i><i>Visa</i><i>Mastercard</i><i>Amex</i><i>Apple Pay</i></div>
     <p class="dm-foot__note">© 2026 ${name}. A fictional store made for the PennyWise demo. Nothing here is for sale.</p>
   </footer>`;
 }

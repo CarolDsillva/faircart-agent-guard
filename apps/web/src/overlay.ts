@@ -18,6 +18,7 @@ const STYLE = `
 .fc-mark { position: absolute; border-radius: 8px; border: 2px solid; box-sizing: border-box; animation: fc-in 380ms ease-out both; }
 .fc-mark b { position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px; white-space: nowrap; color: #fff; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: .01em; }
 .fc-mark--side b { left: auto; right: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); margin: 0; }
+.fc-mark--mid b { left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%); margin: 0; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
 .fc-mark--money { border-color: #d9480f; background: rgba(217,72,15,.08); }
 .fc-mark--money b { background: #d9480f; }
 .fc-mark--manipulation { border-color: #b97700; background: rgba(232,163,23,.10); border-style: dashed; }
@@ -52,8 +53,8 @@ function layer(doc: Document): HTMLElement {
 /** Position in document coordinates, so marks scroll with the page. */
 function box(el: Element) {
   const r = el.getBoundingClientRect();
-  const win = el.ownerDocument.defaultView!;
-  return { x: r.left + win.scrollX, y: r.top + win.scrollY, w: r.width, h: r.height };
+  const win = el.ownerDocument.defaultView;
+  return { x: r.left + (win?.scrollX ?? 0), y: r.top + (win?.scrollY ?? 0), w: r.width, h: r.height };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -73,8 +74,8 @@ export async function pointAt(el: Element, label = 'Agent') {
     c.innerHTML = CURSOR;
     l.append(c);
     // Enter from the top-left corner of the visible page.
-    const win = doc.defaultView!;
-    c.style.transform = `translate(${win.scrollX + 24}px, ${win.scrollY + 24}px)`;
+    const win = doc.defaultView;
+    c.style.transform = `translate(${(win?.scrollX ?? 0) + 24}px, ${(win?.scrollY ?? 0) + 24}px)`;
     await sleep(30);
   }
   c.querySelector('span')!.textContent = label;
@@ -111,9 +112,10 @@ function place(m: HTMLElement, el: Element) {
  * page changes, once per frame.
  */
 function track(doc: Document, l: HTMLElement) {
-  if (l.dataset.tracking) return;
+  // A document the frame has already navigated away from has no window: nothing to follow.
+  const win = doc.defaultView;
+  if (!win || !doc.body || l.dataset.tracking) return;
   l.dataset.tracking = '1';
-  const win = doc.defaultView!;
   let queued = false;
   const update = () => {
     queued = false;
@@ -136,6 +138,7 @@ function track(doc: Document, l: HTMLElement) {
 
 /** Draw FairCart's findings on the page. Replaces earlier marks of the same group. */
 export function mark(doc: Document, group: string, items: { el: Element; label: string; tone: MarkTone }[]) {
+  if (!doc.defaultView || !doc.body) return;
   const l = layer(doc);
   track(doc, l);
   l.querySelectorAll(`.fc-mark[data-group="${group}"]`).forEach((m) => m.remove());
@@ -150,7 +153,7 @@ export function mark(doc: Document, group: string, items: { el: Element; label: 
     m.dataset.group = group;
     // Short rows stacked on top of each other (a bill): label beside the box, so labels don't cover the rows.
     const r = it.el.getBoundingClientRect();
-    if (r.height < 48 && r.left > 240) m.classList.add('fc-mark--side');
+    if (r.height < 48) m.classList.add(r.left > 240 ? 'fc-mark--side' : 'fc-mark--mid');
     owners.set(m, it.el);
     place(m, it.el);
     const tag = doc.createElement('b');

@@ -41,7 +41,7 @@ describe('agent wallet', () => {
     const authorization = await checkout(call, runId);
     const r = await call('POST', '/shop/api/agent-pay', { authorization });
     expect(r.status).toBe(200);
-    expect(r.json).toMatchObject({ state: 'captured', paidBy: 'agent', capture: { status: 'COMPLETED', amount: '3.28' } });
+    expect(r.json).toMatchObject({ state: 'captured', paidBy: 'agent', capture: { status: 'COMPLETED', amount: '11.49' } });
     expect(paypal.lastOrder?.intent).toBe('AUTHORIZE');
     expect(paypal.lastOrder?.payment_source?.paypal.vault_id).toMatch(/^MOCKTOKEN/);
     expect(r.json.receipt).toMatchObject({ savedPaise: 0, intentMandateId: expect.stringMatching(/^IM-/), cartMandateId: expect.stringMatching(/^CM-/) });
@@ -60,7 +60,7 @@ describe('agent wallet', () => {
   it('voids the hold and stops when the PayPal order does not match the cart mandate', async () => {
     const paypal = new MockPayPal();
     paypal.tamper = (body) => {
-      body.purchase_units[0]!.amount.value = '3.38';
+      body.purchase_units[0]!.amount.value = '11.59';
       return body;
     };
     const { call, runId } = await passed({ autopay: true, paypal });
@@ -100,10 +100,10 @@ describe('payments ledger', () => {
       runId,
       store: 'FairMart',
       state: 'captured',
-      triedPaise: 28900,
-      paidPaise: 28900,
+      triedPaise: 1149,
+      paidPaise: 1149,
       savedPaise: 0,
-      paidUsdCents: 328,
+      paidUsdCents: 1149,
       paidBy: 'agent',
       intentMandateId: expect.stringMatching(/^IM-/),
       cartMandateId: expect.stringMatching(/^CM-/),
@@ -121,8 +121,8 @@ describe('payments ledger', () => {
     const row = (await call('GET', '/api/ledger')).json.rows[0];
     expect(row).toMatchObject({ store: 'DemoMart', state: 'stopped', paidPaise: null });
     expect(row.caught).toEqual([
-      { label: 'Freshness protection (1 year)', paise: 4900, pattern: 'Added without your choice' },
-      { label: 'Demo Pass (3 months)', paise: 9900, pattern: 'Added without your choice' },
+      { label: 'Freshness protection (1 year)', paise: 199, pattern: 'Added without your choice' },
+      { label: 'Demo Pass (3 months)', paise: 499, pattern: 'Added without your choice' },
     ]);
   });
 });

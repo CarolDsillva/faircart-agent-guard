@@ -14,14 +14,14 @@ Devpost rules: YouTube, public, under 3 minutes, showing the project working. No
 | Time | On screen | Voiceover |
 |---|---|---|
 | 0:00 | Agent page | "AI agents are starting to buy things for us. But checkouts are full of tricks built to catch people: pre-ticked add-ons, fees that appear at the last step, charges nobody explains. An agent falls for them even more easily. This is PennyWise." |
-| 0:15 | Pick Sunrise Chakki Atta 5 kg, DemoMart. Set ₹1,000, delivery fee OK, agent pays on its own | "I tell my agent what to buy and the rules: at most ₹1,000, delivery fees only, and it may pay with PayPal on its own, inside these rules. That's my intent mandate." |
+| 0:15 | Pick Bluebird Roasters Whole Bean Coffee 12 oz, DemoMart. Set $25, delivery fee OK, agent pays on its own | "I tell my agent what to buy and the rules: at most $25, delivery fees only, and it may pay with PayPal on its own, inside these rules. That's my intent mandate." |
 | 0:25 | Click "Peek at the hidden costs". The store opens; PennyWise reads the product page, then the payment page | "First, a peek. PennyWise walks DemoMart's real checkout without buying anything." |
-| 0:35 | Peek result: ₹289 on the shelf, ₹471 at payment, five hidden costs marked on the page | "The atta is ₹289 on the shelf. At payment DemoMart charges ₹471: a protection plan ticked for me, a pass I never chose, two fees that only appear now, and ₹10 nobody explains." |
-| 0:45 | Click "Let my agent buy it". Link PayPal (sandbox login, approve) | "Now the same screen, but my agent shops it. I link PayPal once for this mandate. I'm not charged." |
+| 0:35 | Peek result: $11.49 on the shelf, $21.95 at payment, five hidden costs marked on the page | "The coffee is $11.49 on the shelf. At payment DemoMart charges $21.95: a protection plan ticked for me, a pass I never chose, two fees that only appear now, and $1.00 nobody explains." |
+| 0:45 | Click "Let my agent buy it" | "Now the same screen, but my agent shops it." |
 | 0:58 | The agent shops. Cursor taps; steps appear on the right | "The agent declines the pop-up, unticks the plan and removes the pass it never chose." |
-| 1:15 | Payment page. Red marks on the bill. "PennyWise blocked payment" card | "At payment, new fees appear and ₹10 nobody can explain. PennyWise blocks the payment. It's code, not the AI, so it can't be argued with. The agent disputes the ₹10 through the store's own help, then asks me about the fees." |
+| 1:15 | Payment page. Red marks on the bill. "PennyWise blocked payment" card | "At payment, new fees appear and $1.00 nobody can explain. PennyWise blocks the payment. It's code, not the AI, so it can't be argued with. The agent disputes the $1.00 through the store's own help, then asks me about the fees." |
 | 1:40 | Approve the two fees | "Only I can approve extra charges, by name. The agent can't." |
-| 1:50 | Approval card, then payment steps, then the receipt | "Now the cart matches, PennyWise signs a cart mandate, and the agent pays with no pop-up. PayPal holds the money, PennyWise checks the PayPal order line by line, and only then is it captured. DemoMart tried ₹471. I paid ₹313." |
+| 1:50 | "Last step: log in to PayPal". Sandbox login, approve; then payment steps and the receipt | "Now the cart matches, PennyWise signs a cart mandate. I log in to PayPal once, and the agent pays by itself. PayPal holds the money, PennyWise checks the PayPal order line by line, and only then is it captured. DemoMart tried $21.95. I paid $13.97." |
 | 2:15 | Shop something else. Open a different product (for example a floor cleaner) and start the agent; speed it up in the edit | "It works on anything in the store, because nothing is written for one product. Same tricks, caught the same way." |
 | 2:30 | Switch to the FairMart tab, scan a product page: nothing found | "On FairMart, the honest store, PennyWise stays quiet." |
 | 2:38 | Merchant fairness view | "Across every checkout, PennyWise builds an honesty record for each merchant: what they tried to charge, and what was stopped." |
@@ -39,7 +39,7 @@ Devpost rules: YouTube, public, under 3 minutes, showing the project working. No
 AI agents are starting to shop and pay for people. But Indian checkouts, and checkouts everywhere, are full of dark patterns: protection plans already ticked, passes slipped into the basket, fees that appear only at payment. India's consumer regulator (CCPA) named 13 of them in 2023. A person sometimes notices. An agent following instructions usually doesn't, and some pages now carry text written to instruct AI agents. We wanted agents to pay with PayPal safely, without anyone having to trust the AI with money.
 
 ### What it does
-You set your agent's rules once: the most to spend per order and which fees are fine. Then you shop a real-looking store of 183 products and hand any product to the agent. Each purchase becomes an **intent mandate**. Optionally, you link PayPal once so the agent can pay on its own.
+You set your agent's rules once: the most to spend per order and which fees are fine. Then you shop a real-looking store of 183 products and hand any product to the agent. Each purchase becomes an **intent mandate**. With autopay on, you log in to PayPal once, at the end, and the agent pays on its own.
 
 The agent shops the store in a live browser. You watch its cursor work while PennyWise boxes each trick it finds. The agent undoes what it can: it unticks add-ons, declines upsells, removes what you never asked for, and disputes charges nobody explains.
 

@@ -22,8 +22,9 @@ export function observation(store: Store, view: View, s: ShopState, opts: { page
 
 export const MANDATE_REQUEST = {
   mandate: {
-    want: { sku: 'DEMO-ATTA-5KG', title: 'Sunrise Chakki Atta 5 kg', maxQuantity: 1 },
-    maxTotalPaise: 35000,
+    want: { sku: 'DEMO-COFFEE-12OZ', title: 'Bluebird Roasters Whole Bean Coffee 12 oz', maxQuantity: 1 },
+    maxTotalPaise: 2500,
+    currency: 'USD',
     allowedFees: ['delivery'],
   },
 };

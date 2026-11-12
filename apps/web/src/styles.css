@@ -2422,3 +2422,238 @@ button {
 .demo-box .composer {
   overflow: visible;
 }
+
+/* ---------------------------------------- Live stage on the landing (v8) */
+.home-wrap {
+  min-height: 0;
+  height: 100%;
+}
+.appbar__for {
+  font-weight: 500;
+  color: var(--pp-blue);
+  font-size: 12.5px;
+  margin-left: 2px;
+}
+.pill-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--slate);
+}
+.pill-btn--ghost:hover {
+  color: var(--ink);
+}
+.section--stage {
+  max-width: 1400px;
+  padding-top: 56px;
+}
+.stage {
+  background: #fff;
+  border: 1px solid #d8e4f2;
+  border-radius: 24px;
+  box-shadow: 0 40px 80px -56px rgba(0, 48, 135, 0.55);
+  overflow: hidden;
+}
+.stage .workspace {
+  height: min(780px, calc(100vh - 140px));
+  min-height: 620px;
+  background: #f4f7fb;
+}
+.stage .pane {
+  margin-left: 12px;
+}
+
+/* The control bar above the live store. */
+.controls {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, #f9fbfe);
+}
+.controls__fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.6fr) auto 130px;
+  grid-template-rows: auto auto;
+  gap: 12px 14px;
+  align-items: end;
+}
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.field__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.field--fees {
+  grid-column: 1 / span 2;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.controls .want {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  height: 40px;
+  margin: 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+.controls .want:focus-within {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 3px rgba(0, 112, 224, 0.12);
+}
+.controls .want input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  font: 500 14px var(--sans);
+  color: var(--ink);
+  background: transparent;
+}
+.controls .want input::placeholder {
+  color: var(--ink);
+  opacity: 1;
+}
+.controls .want input:focus::placeholder {
+  color: var(--faint);
+}
+.want__price {
+  font-size: 14px;
+  color: var(--pp-navy);
+}
+.controls .want__list {
+  top: 44px;
+}
+.want__hint {
+  font-size: 11.5px;
+  color: var(--faint);
+  padding: 6px 10px 4px;
+}
+.money-in {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 0 10px;
+  height: 40px;
+  font-weight: 600;
+  background: #fff;
+}
+.money-in input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  font: 600 15px var(--sans);
+  background: transparent;
+}
+.controls .seg {
+  height: 40px;
+}
+.field--switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 6px 12px;
+  background: #fff;
+  font: 500 13px var(--sans);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  align-self: end;
+}
+.field--switch .field__label {
+  margin-bottom: 1px;
+}
+.controls__actions {
+  display: grid;
+  gap: 8px;
+  width: 230px;
+  align-content: center;
+}
+.act {
+  font: 600 14px var(--sans);
+  border-radius: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.act:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+.act:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.act--dark {
+  background: var(--pp-navy);
+  border-color: var(--pp-navy);
+  color: #fff;
+}
+.act--dark:hover:not(:disabled) {
+  background: var(--pp-deep);
+}
+.act--play {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(120deg, var(--pp-blue), var(--pp-sky));
+  box-shadow: 0 10px 22px -12px rgba(0, 112, 224, 0.9);
+  padding: 12px 14px;
+  font-size: 15px;
+}
+.guide--auto {
+  background: linear-gradient(90deg, #fff6e2, #fffaf0);
+  border-bottom-color: #f1dcae;
+}
+.guide__auto {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a4d00;
+  background: #ffe7b0;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+@media (max-width: 1100px) {
+  .controls {
+    flex-direction: column;
+  }
+  .controls__actions {
+    width: auto;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .controls__fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stage .workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .stage .browser {
+    height: 640px;
+    margin: 12px;
+  }
+}
+.controls__fields {
+  grid-template-columns: minmax(260px, 1.6fr) auto 230px;
+}

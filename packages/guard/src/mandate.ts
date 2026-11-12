@@ -16,6 +16,8 @@ export const Mandate = z.object({
   feeCapsPaise: z.record(z.string(), Paise).optional(),
   /** Signed for human-not-present payment: the agent may pay with the linked wallet inside this mandate. */
   autopay: z.boolean().default(false),
+  /** The store's currency; amounts in the mandate are its minor units. */
+  currency: z.enum(['INR', 'USD']).optional(),
   amendments: z.array(z.object({ version: z.number().int(), at: z.string(), approved: z.array(Approval) })),
 });
 export type Mandate = z.infer<typeof Mandate>;

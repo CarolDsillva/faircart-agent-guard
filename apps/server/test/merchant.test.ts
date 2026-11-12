@@ -34,7 +34,7 @@ describe('DemoMart merchant checkout', () => {
     const { call, paypal, authorization } = await authorized();
     const { json } = await call('POST', '/shop/api/checkout', { authorization });
     const order = await paypal.getOrder(json.orderId);
-    expect(order).toMatchObject({ currency: 'USD', total: '3.28', items: [{ name: 'Sunrise Chakki Atta 5 kg', quantity: '1', unit_amount: { value: '3.28' } }] });
+    expect(order).toMatchObject({ currency: 'USD', total: '11.49', items: [{ name: 'Bluebird Roasters Whole Bean Coffee 12 oz', quantity: '1', unit_amount: { value: '11.49' } }] });
   });
 
   it('refuses a tampered authorization', async () => {
@@ -46,7 +46,7 @@ describe('DemoMart merchant checkout', () => {
   it('refuses to go on when the PayPal order differs from what was approved', async () => {
     const paypal = new MockPayPal();
     paypal.tamper = (body) => {
-      body.purchase_units[0]!.amount.value = '3.29';
+      body.purchase_units[0]!.amount.value = '11.50';
       return body;
     };
     const { call, runId, authorization } = await authorized(paypal);
@@ -60,7 +60,7 @@ describe('DemoMart merchant checkout', () => {
     const { call, runId, authorization } = await authorized();
     const { json } = await call('POST', '/shop/api/checkout', { authorization });
     const cap = await call('POST', '/shop/api/capture', { runId, orderId: json.orderId });
-    expect(cap.json).toMatchObject({ state: 'captured', capture: { status: 'COMPLETED', amount: '3.28' } });
+    expect(cap.json).toMatchObject({ state: 'captured', capture: { status: 'COMPLETED', amount: '11.49' } });
 
     const event = { event_type: 'PAYMENT.CAPTURE.COMPLETED', resource: { invoice_id: authorization.id } };
     expect((await call('POST', '/api/paypal/webhook', event, { 'paypal-transmission-sig': 'forged' })).status).toBe(400);
@@ -95,7 +95,7 @@ describe('merchant checkout retries', () => {
   it('never hands out an order FairCart rejected', async () => {
     const paypal = new MockPayPal();
     paypal.tamper = (body) => {
-      body.purchase_units[0]!.amount.value = '3.29';
+      body.purchase_units[0]!.amount.value = '11.50';
       return body;
     };
     const { call, authorization } = await authorized(paypal);

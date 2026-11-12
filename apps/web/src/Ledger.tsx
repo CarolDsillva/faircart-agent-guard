@@ -1,4 +1,6 @@
-import { formatInr, formatUsd } from '@faircart/money';
+import { formatMoney, formatUsd } from '@faircart/money';
+
+const formatInr = (cents: number) => formatMoney(cents, 'USD');
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, type GridApi, type ICellRendererParams, type ValueFormatterParams } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,7 +24,7 @@ const theme = themeQuartz.withParams({
 });
 
 const inr = (p: ValueFormatterParams) => (p.value === null || p.value === undefined ? '–' : formatInr(p.value as number));
-const when = (p: ValueFormatterParams) => (p.value ? new Date(p.value as string).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+const when = (p: ValueFormatterParams) => (p.value ? new Date(p.value as string).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
 
 const STATE: Record<string, { label: string; tone: string }> = {
   captured: { label: 'Paid', tone: 'pass' },

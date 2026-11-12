@@ -19,7 +19,7 @@ export const STORES: Record<Store, StoreInfo> = {
     domain: 'demomart.example',
     honest: false,
     blurb: 'A grocery store with a trick at every step of checkout.',
-    tricks: ['Protection plan already ticked', 'A paid pass slipped into the basket', 'Fees that appear only at payment', '₹10 in the total nobody explains', 'Text written to instruct AI agents'],
+    tricks: ['Protection plan already ticked', 'A paid pass slipped into the basket', 'Fees that appear only at payment', '$1.00 in the total nobody explains', 'Text written to instruct AI agents'],
   },
   fairmart: {
     store: 'fairmart',
@@ -41,8 +41,9 @@ export interface Prefs {
   store: Store;
 }
 
-export const DEFAULT_PREFS: Prefs = { maxRupees: 1000, fees: ['delivery'], autopay: true, sku: 'DEMO-ATTA-5KG', store: 'demomart' };
-const PREFS_KEY = 'pennywise-prefs';
+export const DEFAULT_PREFS: Prefs = { maxRupees: 25, fees: ['delivery'], autopay: true, sku: 'DEMO-COFFEE-12OZ', store: 'demomart' };
+/** v2: the stores moved to US dollars, so older saved budgets (in rupees) don't carry over. */
+const PREFS_KEY = 'pennywise-prefs-v2';
 
 export function loadPrefs(): Prefs | null {
   try {

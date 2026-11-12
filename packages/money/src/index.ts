@@ -33,3 +33,19 @@ export function centsToPayPal(cents: number): string {
 export function formatUsd(cents: number): string {
   return `US$${centsToPayPal(cents)}`;
 }
+
+/** The store's currency. Amounts are integer minor units either way (paise or cents). */
+export type Currency = 'INR' | 'USD';
+
+/** Minor units → US cents for PayPal. A USD store needs no conversion. */
+export function toUsdCents(minor: number, currency: Currency = 'INR'): number {
+  return currency === 'USD' ? minor : paiseToUsdCents(minor);
+}
+
+/** How many units of the store's currency make US$1. */
+export const perUsd = (currency: Currency = 'INR') => (currency === 'USD' ? 1 : INR_PER_USD);
+
+export function formatMoney(minor: number, currency: Currency = 'INR'): string {
+  if (currency === 'INR') return formatInr(minor);
+  return `${minor < 0 ? '-' : ''}$${centsToPayPal(Math.abs(minor))}`;
+}

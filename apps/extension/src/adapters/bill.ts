@@ -63,15 +63,15 @@ function candidateRows(root: ParentNode): RawRow[] {
     // Skip if a child already forms a complete row (we want the tightest row).
     const childIsRow = [...el.children].some((c) => {
       const ct = cleanText(c.textContent);
-      return ct.length >= 3 && (rupeeCount(ct) >= 1 || FREE.test(ct)) && /[A-Za-z]{3,}/.test(ct.replace(/(?:₹|Rs\.?)\s*[\d,.]+/g, '').replace(FREE_WORD, ''));
+      return ct.length >= 3 && (rupeeCount(ct) >= 1 || FREE.test(ct)) && /[A-Za-z]{3,}/.test(ct.replace(/(?:₹|Rs\.?|US\$|\$)\s*[\d,.]+/g, '').replace(FREE_WORD, ''));
     });
     if (childIsRow) continue;
     // Label = text without amounts; must contain words.
-    const label = cleanText(t.replace(/(?:[-−]\s*)?(?:₹|Rs\.?)\s*[\d,]+(?:\.\d+)?/gi, ' ').replace(/\bfree\b/gi, ' ')).replace(/[:\-–]+$/, '').trim();
+    const label = cleanText(t.replace(/(?:[-−]\s*)?(?:₹|Rs\.?|US\$|\$)\s*[\d,]+(?:\.\d+)?/gi, ' ').replace(/\bfree\b/gi, ' ')).replace(/[:\-–]+$/, '').trim();
     if (!/[A-Za-z]{3,}/.test(label) || label.length > 70) continue;
     // When two amounts appear (struck original + current), the last one is what is charged.
-    const amounts = [...t.matchAll(/([-−])?\s*(?:₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)/gi)].map((m) => (m[1] ? -1 : 1) * Number(m[2]!.replace(/,/g, '')));
-    const free = hasFree && (count === 0 || /free\s*$/i.test(t) || /(?:₹|Rs\.?)\s*[\d,]+\s*free/i.test(t));
+    const amounts = [...t.matchAll(/([-−])?\s*(?:₹|Rs\.?|US\$|\$)\s*([\d,]+(?:\.\d+)?)/gi)].map((m) => (m[1] ? -1 : 1) * Number(m[2]!.replace(/,/g, '')));
+    const free = hasFree && (count === 0 || /free\s*$/i.test(t) || /(?:₹|Rs\.?|US\$|\$)\s*[\d,]+(?:\.\d+)?\s*free/i.test(t));
     const amount = free ? 0 : (amounts.at(-1) ?? null);
     rows.push({ el, label, amount: amount !== null && Number.isFinite(amount) ? amount : null, free });
   }

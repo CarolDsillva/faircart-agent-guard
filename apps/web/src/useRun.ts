@@ -94,7 +94,7 @@ function showVerdict(obs: Observation, reasons: Reason[] | null) {
       if (e) items.push({ el: e, label: r.code === 'FEE_NOT_ALLOWED' ? 'Fee not in your mandate' : 'Not what you asked for', tone: 'blocked' });
     } else if (r.code === 'UNEXPLAINED_AMOUNT') {
       const e = el(rows.find((x) => x.kind === 'total')?.elRef);
-      if (e) items.push({ el: e, label: `${r.paise ? `₹${r.paise / 100} ` : ''}nobody explains`, tone: 'blocked' });
+      if (e) items.push({ el: e, label: `${r.paise ? `$${(r.paise / 100).toFixed(2)} ` : ''}nobody explains`, tone: 'blocked' });
     }
   }
   mark(doc, 'verdict', items);
@@ -104,9 +104,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function describe(a: Action): string {
   switch (a.tool) {
     case 'set_control':
-      return `${a.checked ? 'Tick' : 'Untick'} ${a.controlId}`;
+      return `${a.checked ? 'Tick' : 'Untick'} ${a.controlId === 'protect' ? 'the protection plan' : a.controlId.replace(/[-_:]/g, ' ')}`;
     case 'click':
-      return `Click ${a.controlId.replace(/^act:/, '').replace(/-/g, ' ')}`;
+      if (/^choice:.*:decline$/.test(a.controlId)) return 'Decline the offer';
+      if (/^choice:.*:accept$/.test(a.controlId)) return 'Accept the offer';
+      return `Click ${a.controlId.replace(/^(act|choice):/, '').replace(/-/g, ' ')}`;
     case 'dismiss_prompt':
       return 'Decline the pop-up';
     case 'request_checkout':
@@ -223,6 +225,12 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
                 setAuthorization(g.authorization);
                 push({ kind: 'guard', title: `Checker passed and signed cart mandate ${cartMandateId(g.authorization.id)}.`, detail: 'Every rupee matches your intent mandate.', tone: 'pass' });
                 if (autopayRef.current) {
+                  // PayPal login comes only now, at the end, when there is a signed cart to pay for.
+                  if (!walletLinkedRef.current) {
+                    pendingAuthz.current = g.authorization;
+                    setPhase('linking');
+                    return;
+                  }
                   await payAsAgent(id, g.authorization);
                   return;
                 }
@@ -267,6 +275,9 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
   );
 
   const autopayRef = useRef(false);
+  const walletLinkedRef = useRef(false);
+  /** The cart mandate waiting for PayPal to be linked. */
+  const pendingAuthz = useRef<Authorization | null>(null);
 
   /** Human-not-present payment: the store holds the money, PennyWise checks the order, then it is captured. */
   const payAsAgent = async (id: string, authz: Authorization) => {
@@ -303,6 +314,8 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
     setWalletLinked(false);
     setWalletUrl(null);
     autopayRef.current = false;
+    walletLinkedRef.current = false;
+    pendingAuthz.current = null;
     taps.current = [];
     setProduct(null);
   }, []);
@@ -319,6 +332,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
           maxTotalPaise: Math.round(m.maxTotalRupees * 100),
           allowedFees: m.allowedFees as never,
           autopay: m.autopay,
+          currency: 'USD',
         });
         setRunId(id);
         setAutopay(m.autopay);
@@ -326,12 +340,8 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         push({
           kind: 'human',
           title: `You signed intent mandate ${intentMandateId(id)}.`,
-          detail: `${want.title}, at most ₹${m.maxTotalRupees}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
+          detail: `${want.title}, at most $${m.maxTotalRupees.toFixed(2)}, fees allowed: ${m.allowedFees.join(', ') || 'none'}. ${m.autopay ? 'The agent may pay on its own inside these rules.' : 'You approve the payment in PayPal.'}`,
         });
-        if (m.autopay) {
-          setPhase('linking');
-          return;
-        }
         await drive(id);
       } catch (e) {
         fail(e);
@@ -360,8 +370,12 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
         setWalletUrl(null);
         await api.walletConfirm(runId, setupTokenId);
         setWalletLinked(true);
-        push({ kind: 'human', title: `You linked PayPal for this mandate${simulated ? ' (simulated)' : ''}.`, detail: 'The agent can pay with it only inside your signed rules. You were not charged.' });
-        await drive(runId);
+        walletLinkedRef.current = true;
+        push({ kind: 'human', title: `You linked PayPal for this mandate${simulated ? ' (simulated)' : ''}.`, detail: 'The agent can pay with it only inside your signed rules.' });
+        const authz = pendingAuthz.current;
+        pendingAuthz.current = null;
+        if (authz) await payAsAgent(runId, authz);
+        else await drive(runId);
       } catch (e) {
         popup?.close();
         fail(e);
@@ -376,7 +390,7 @@ export function useRun(frame: React.RefObject<HTMLIFrameElement | null>) {
       approving.current = true;
       try {
         await api.amend(runId, approved);
-        push({ kind: 'human', title: `You approved ${approved.map((a) => `${a.label} ₹${a.paise / 100}`).join(' and ')}.`, detail: 'Only you can add charges to your instructions. The agent cannot.' });
+        push({ kind: 'human', title: `You approved ${approved.map((a) => `${a.label} $${(a.paise / 100).toFixed(2)}`).join(' and ')}.`, detail: 'Only you can add charges to your instructions. The agent cannot.' });
         setReasons([]);
         approving.current = false;
         await drive(runId);

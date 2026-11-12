@@ -27,7 +27,7 @@ const trap = initialState('demomart');
 const clean = { ...trap, protection: false, pass: false };
 
 describe('runs API', () => {
-  it('walks DemoMart from traps to a signed ₹313 authorization', async () => {
+  it('walks DemoMart from traps to a signed $13.97 authorization', async () => {
     const { call } = setup([untickPlan, checkoutPlan, checkoutPlan, checkoutPlan, checkoutPlan]);
     const id = await start(call);
 
@@ -43,7 +43,7 @@ describe('runs API', () => {
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', clean, { pageId: 'pay' }));
     g = await call('POST', `/api/runs/${id}/checkout`);
     expect(g.json.reasons.map((r: any) => r.code).sort()).toEqual(['FEE_NOT_ALLOWED', 'FEE_NOT_ALLOWED', 'UNEXPLAINED_AMOUNT']);
-    expect(g.json.state).toBe('shopping'); // the ₹10 can be questioned through the help link
+    expect(g.json.state).toBe('shopping'); // the $1.00 can be questioned through the help link
 
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
     g = await call('POST', `/api/runs/${id}/checkout`);
@@ -51,8 +51,8 @@ describe('runs API', () => {
 
     const a = await call('POST', `/api/runs/${id}/amend`, {
       approved: [
-        { label: 'Handling charge', kind: 'handling', paise: 1500 },
-        { label: 'Platform fee', kind: 'platform', paise: 900 },
+        { label: 'Handling charge', kind: 'handling', paise: 149 },
+        { label: 'Platform fee', kind: 'platform', paise: 99 },
       ],
     });
     expect(a.json).toMatchObject({ state: 'shopping', mandateVersion: 2 });
@@ -60,19 +60,19 @@ describe('runs API', () => {
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
     g = await call('POST', `/api/runs/${id}/checkout`);
     expect(g.json.verdict).toBe('PASS');
-    expect(g.json.authorization.totalPaise).toBe(31300);
+    expect(g.json.authorization.totalPaise).toBe(1397);
 
     const run = await call('GET', `/api/runs/${id}`);
     expect(run.json.state).toBe('authorized');
-    expect(run.json.receipt.triedPaise).toBe(47100);
+    expect(run.json.receipt.triedPaise).toBe(2195);
     expect(run.json.receipt.caught).toEqual([
-      { label: 'Freshness protection (1 year)', paise: 4900 },
-      { label: 'Demo Pass (3 months)', paise: 9900 },
-      { label: 'Unexplained amount in the total', paise: 1000 },
+      { label: 'Freshness protection (1 year)', paise: 199 },
+      { label: 'Demo Pass (3 months)', paise: 499 },
+      { label: 'Unexplained amount in the total', paise: 100 },
     ]);
     expect(run.json.receipt.approved).toEqual([
-      { label: 'Handling charge', paise: 1500 },
-      { label: 'Platform fee', paise: 900 },
+      { label: 'Handling charge', paise: 149 },
+      { label: 'Platform fee', paise: 99 },
     ]);
     expect(run.json.audit.some((e: any) => e.actor === 'human' && e.event === 'amended')).toBe(true);
   });
@@ -83,7 +83,7 @@ describe('runs API', () => {
     await call('POST', `/api/runs/${id}/observe`, observation('fairmart', 'pay', initialState('fairmart')));
     const g = await call('POST', `/api/runs/${id}/checkout`);
     expect(g.json.verdict).toBe('PASS');
-    expect(g.json.authorization.totalPaise).toBe(28900);
+    expect(g.json.authorization.totalPaise).toBe(1149);
   });
 
   it('refuses an amendment while the agent is still shopping', async () => {
@@ -159,10 +159,10 @@ describe('receipt', () => {
     await call('POST', `/api/runs/${id}/checkout`);
     const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
     expect(r.caught).toEqual([
-      { label: '1-year freshness protection', paise: 4900 },
-      { label: 'Demo Pass (3 months)', paise: 9900 },
+      { label: '1-year freshness protection', paise: 199 },
+      { label: 'Demo Pass (3 months)', paise: 499 },
     ]);
-    expect(r.triedPaise).toBe(31300 + 4900 + 9900);
+    expect(r.triedPaise).toBe(1397 + 199 + 499);
   });
 });
 
@@ -209,7 +209,7 @@ describe('planning from the page as it is now', () => {
 });
 
 describe('the agent asking you', () => {
-  const ask = { actions: [{ tool: 'ask_user', question: 'Approve the ₹15 handling fee?', amounts: [{ label: 'Handling charge', paise: 1500 }], explanation: 'This fee is not allowed.' }] };
+  const ask = { actions: [{ tool: 'ask_user', question: 'Approve the ₹15 handling fee?', amounts: [{ label: 'Handling charge', paise: 149 }], explanation: 'This fee is not allowed.' }] };
 
   it('pauses for the human when the planner asks and nothing is left for the agent to fix', async () => {
     const { call } = setup([ask]);
@@ -235,18 +235,18 @@ describe('receipt labels', () => {
     const { call } = setup([untickPlan]);
     const id = await start(call);
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'item', trap));
-    expect((await call('GET', `/api/runs/${id}`)).json.receipt.caught).toEqual([{ label: '1-year freshness protection', paise: 4900 }]);
+    expect((await call('GET', `/api/runs/${id}`)).json.receipt.caught).toEqual([{ label: '1-year freshness protection', paise: 199 }]);
   });
 });
 
 describe('receipt counts an unexplained amount the agent disputed before checking out', () => {
-  it('records the ₹10 from the bill itself, not only from a checker block', async () => {
+  it('records the $1.00 from the bill itself, not only from a checker block', async () => {
     const { call } = setup([checkoutPlan, checkoutPlan]);
     const id = await start(call);
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', clean, { pageId: 'pay' }));
     await call('POST', `/api/runs/${id}/observe`, observation('demomart', 'pay', { ...clean, disputed: true }, { pageId: 'pay' }));
     const r = (await call('GET', `/api/runs/${id}`)).json.receipt;
-    expect(r.caught).toEqual([{ label: 'Unexplained amount in the total', paise: 1000 }]);
+    expect(r.caught).toEqual([{ label: 'Unexplained amount in the total', paise: 100 }]);
   });
 });
 
@@ -299,9 +299,9 @@ describe('scan a page, any product, and a forgiving fallback', () => {
   });
 
   it('checks any catalogue product the same way', async () => {
-    const sku = 'CLE-SPARKLE-FLOOR-CLEANER-1-L';
+    const sku = 'HOU-SPARKLE-LAUNDRY-DETERGENT-92-OZ';
     const { call } = setup([checkoutPlan, checkoutPlan]);
-    const mk = async () => (await call('POST', '/api/runs', { mandate: { ...MANDATE_REQUEST.mandate, want: { sku, title: 'Sparkle Floor Cleaner 1 L', maxQuantity: 1 } } })).json.runId as string;
+    const mk = async () => (await call('POST', '/api/runs', { mandate: { ...MANDATE_REQUEST.mandate, want: { sku, title: 'Sparkle Laundry Detergent 92 oz', maxQuantity: 1 } } })).json.runId as string;
 
     const fair = await mk();
     await call('POST', `/api/runs/${fair}/observe`, observation('fairmart', 'pay', initialState('fairmart', sku)));

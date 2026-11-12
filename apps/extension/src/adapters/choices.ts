@@ -63,7 +63,7 @@ export function readChoicePairs(root: ParentNode, refs: RefRegistry): ControlFac
 /** Page stage from what the page offers, for sites whose URLs don't say. */
 export function stageFromContent(root: ParentNode): 'cart' | 'checkout' | null {
   const labels = [...root.querySelectorAll(CLICKABLE)].filter((b) => !b.closest('[data-faircart-ui]')).map((b) => text(b).toLowerCase());
-  if (labels.some((l) => /^(place (your )?order|pay now|proceed to pay|make payment|pay ₹)/.test(l))) return 'checkout';
+  if (labels.some((l) => /^(place (your )?order|pay now|proceed to pay|make payment|pay [₹$])/.test(l))) return 'checkout';
   if (labels.some((l) => /^(proceed to (checkout|buy)|checkout|go to checkout|continue to (payment|checkout))/.test(l))) return 'cart';
   return null;
 }

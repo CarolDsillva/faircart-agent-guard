@@ -1,5 +1,5 @@
 import type { Mandate, Reason } from '@faircart/guard';
-import { formatInr } from '@faircart/money';
+import { formatMoney } from '@faircart/money';
 import type { Finding, ScreenSnapshot } from '@faircart/schemas';
 
 /**
@@ -29,12 +29,12 @@ export function buildBrief(input: { mandate: Mandate; snapshot: ScreenSnapshot; 
   return {
     mandate: {
       product: m.want.title,
-      maxTotal: formatInr(m.maxTotalPaise),
+      maxTotal: formatMoney(m.maxTotalPaise, m.currency),
       allowedFees: m.allowedFees,
-      approvedByHuman: m.amendments.flatMap((a) => a.approved.map((x) => `${x.label} ${formatInr(x.paise)}`)),
+      approvedByHuman: m.amendments.flatMap((a) => a.approved.map((x) => `${x.label} ${formatMoney(x.paise, m.currency)}`)),
     },
     findings: input.findings.map((f) => ({ ruleId: f.ruleId, category: f.category, title: f.title, severity: f.severity })),
-    lastGuard: input.lastGuard?.map((r) => ({ code: r.code, label: r.label, ...(r.paise !== undefined ? { amount: formatInr(r.paise) } : {}), fixable: r.fixable })) ?? null,
+    lastGuard: input.lastGuard?.map((r) => ({ code: r.code, label: r.label, ...(r.paise !== undefined ? { amount: formatMoney(r.paise, m.currency) } : {}), fixable: r.fixable })) ?? null,
     page: {
       stage: s.stage,
       product: s.product ? { title: s.product.title, sku: s.product.retailerSku } : null,
