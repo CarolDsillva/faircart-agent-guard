@@ -22,9 +22,29 @@ The vocabulary follows the Agent Payments Protocol (AP2), which PayPal supports:
 
 Built for the PayPal AI Hackathon (Devpost). MIT licensed.
 
+### For judges: try it in 2 minutes
+
+1. Open **https://pennywise-for-paypal.onrender.com** and press **Watch the demo** (45 seconds, plays by itself, no login).
+2. Click **Try it yourself**. Pick a product, then **Peek at costs** to see what the shelf price hides (no login, no AI).
+3. Click **Let my agent buy it**. Approve the fees when asked. At **Last step: log in to PayPal**, use the sandbox buyer:
+   - Email: _add the sandbox buyer email_
+   - Password: _add the sandbox buyer password_
+4. After the receipt, open **Merchant fairness**.
+
+PayPal runs in sandbox, so no real money moves. The agent uses Gemini's free tier; if it's busy, a labelled backup planner (no AI) finishes the run.
+
+**Prize categories:**
+- **Agentic Commerce:** the agent pays by itself inside intent and cart mandates, through a vaulted PayPal wallet.
+- **PayPal + AI:** Gemini plans; PayPal Orders, Vault and authorize–verify–capture move only the approved amount.
+- **AG Grid:** the Merchant fairness ledger.
+- **APIMatic:** orders and payments go through PayPal's APIMatic-generated TypeScript Server SDK.
+- **Render:** a Blueprint (`render.yaml`) web service with a health check, auto-deploy, and a persistent disk for the ledger.
+
+**What existed before:** FairCart's rule pack and page adapters came from an earlier browser-extension proof of concept and entered this repository as one baseline commit. Everything PennyWise adds (the agent, checker, mandates, PayPal integration, stores, console, product demo and ledger) was built during the hackathon; see the commit history.
+
 ## Any product, one engine
 
-The demo is two practice stores with the same 183 products across nine aisles:
+The demo is two practice stores with the same 174 products across nine aisles:
 - **DemoMart** puts a trick at every step of checkout, on every product: a pre-ticked protection plan, a pass slipped into the basket, fees that appear only at payment, $1.00 nobody explains, and product text written to instruct AI agents. For the $11.49 coffee it tries to charge $21.95.
 - **FairMart** sells the same shelves honestly. PennyWise stays quiet and the agent pays.
 
@@ -34,15 +54,13 @@ Nothing is written for a particular product or store: the same reader, rule engi
 
 **Live demo: https://pennywise-for-paypal.onrender.com**
 
-1. **Press Play the demo.** The live store and agent sit right on the landing page. The guided demo runs the whole story by itself: a peek at the hidden costs, the agent shopping, PennyWise blocking the payment, the fees approved, and the signed cart. PayPal asks you to log in only at the very end, to pay.
-2. **Or drive it yourself** from the bar above the store: pick what to buy (180 products, or a popular pick), DemoMart (tricky) or FairMart (honest), the most to spend, and which fees are fine.
-3. **Peek at hidden costs** (no agent, no AI): PennyWise opens the store's real product and payment pages, reads them, and lists every charge the shelf price leaves out, marked on the page. For the $11.49 coffee on DemoMart: $21.95 at payment, five hidden costs. On FairMart: exactly $11.49.
-4. **Let my agent buy it:** the same screen, but now the agent shops it. Its cursor taps through the store while PennyWise boxes every trick, and the pane on the right narrates each step. You can also browse the store and scan any page for tricks.
+1. **Watch the demo.** The landing page opens with a 45-second product demo that plays by itself: your rules, the tricks PennyWise spots, the agent shopping, the checker blocking payment, your approval, the signed cart and the receipt. It runs on the real store pages and the real checker; the agent's clicks are scripted and the PayPal step is simulated, so it plays the same every time, and the page says so.
+2. **Try it yourself** (top bar) is the live product. One bar: what to buy (search 174 products, or open any product in the store), DemoMart (tricky) or FairMart (honest), the most to spend, and **Rules** (which fees are fine, and whether the agent pays on its own).
+3. **Peek at costs** (no agent, no AI): PennyWise opens the store's real product and payment pages, reads them, and lists every charge the shelf price leaves out, each with a numbered badge on the page. For the $11.49 coffee on DemoMart: $21.95 at payment, five hidden costs. On FairMart: exactly $11.49.
+4. **Let my agent buy it:** the same screen, but now the Gemini agent shops it. Its cursor taps through the store, PennyWise numbers each trick on the page, and the panel lists them and narrates each step.
 5. When a charge falls outside your rules and the agent can't remove it, it asks you. Approve the fee by name, or choose **Don't buy**.
-6. With autopay on, once PennyWise signs the cart mandate you log in to PayPal (Vault, sandbox) and the agent pays by itself. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
-7. **Shop something else** takes you back to the store. **Merchant fairness** (top bar) shows every finished run: what each merchant tried to charge, what was paid, and which tricks were blocked.
-
-Sandbox buyer for PayPal: _add the sandbox personal account email here; share the password with judges privately_.
+6. With autopay on, PayPal login comes **at the end**: once PennyWise signs the cart mandate, you log in to PayPal once (Vault, sandbox) and the agent pays by itself. PayPal holds the money, PennyWise checks the order line by line, and only then is it captured.
+7. **Merchant fairness** (top bar) shows every finished run, including product-demo runs (labelled "Demo · payment simulated").
 
 The first planning step can take 10 to 20 seconds while Gemini responds. If Gemini is unreachable, a labelled backup planner (no AI) finishes the run. If Gemini returns a plan that doesn't fit the page, the backup planner handles that one page and Gemini plans the next.
 
@@ -81,15 +99,15 @@ The first planning step can take 10 to 20 seconds while Gemini responds. If Gemi
 ### PayPal
 
 - **DemoMart is the merchant of record.** PennyWise never receives money.
-- **Agent wallet (human-not-present):** when you sign with autopay, you link PayPal once through **Vault v3** (setup token → your approval → payment token). After the checker signs the cart mandate, DemoMart creates the order with `payment_source.paypal.vault_id` and **`intent: AUTHORIZE`**, so PayPal only *holds* the money. PennyWise reads the order back and compares it with the cart mandate. Only then is the authorization captured; on any mismatch the hold is **voided**. No pop-up, and no way for the agent to pay outside the mandates.
+- **Agent wallet (human-not-present):** with autopay on, once the checker has signed the cart you link PayPal through **Vault v3** (setup token → your approval → payment token). Login comes only at the end, when there is something to pay. After the checker signs the cart mandate, DemoMart creates the order with `payment_source.paypal.vault_id` and **`intent: AUTHORIZE`**, so PayPal only *holds* the money. PennyWise reads the order back and compares it with the cart mandate. Only then is the authorization captured; on any mismatch the hold is **voided**. No pop-up, and no way for the agent to pay outside the mandates.
 - The checker's PASS produces an **HMAC-signed, single-use authorization** (30 minutes to create the order). DemoMart's agent-checkout endpoint verifies it and creates an **Orders v2** order with every line as an item (`PayPal-Request-Id` = authorization id, so retries are idempotent).
 - **PennyWise then reads the PayPal order back** and compares every item, amount and the currency with the authorization before the buyer can approve. A mismatch stops the run.
 - After the buyer approves (JS SDK buttons), DemoMart captures, the captured amount is checked again, and a **verified `PAYMENT.CAPTURE.COMPLETED` webhook** marks the run settled.
-- PennyWise is designed to sit in front of agents built on PayPal's tools, including the PayPal Agent Toolkit. This demo calls the Orders v2 REST API directly from code, because the guard needs exact cents, per-order idempotency and `invoice_id`.
+- PennyWise is designed to sit in front of agents built on PayPal's tools, including the PayPal Agent Toolkit. Here, orders go through PayPal's Server SDK with exact cents, per-order idempotency (`PayPal-Request-Id`) and `invoice_id`, because the guard needs all three.
 
-### Payments ledger (AG Grid)
+### Merchant fairness (AG Grid)
 
-The console's **Payments ledger** view is built with **AG Grid** (Community, MIT). It shows every finished agent run on the server:
+The **Merchant fairness** view is built with **AG Grid** (Community, MIT). It shows every finished agent run, kept on a Render persistent disk so it survives restarts and deploys (`DATA_DIR`; locally `./data`). Product-demo runs appear too, labelled "Demo · payment simulated", and are not counted as money paid:
 - what the store tried to charge, what PayPal moved and what PennyWise saved;
 - who approved the payment (the agent wallet, or you in PayPal), the intent and cart mandate ids, and the PayPal order;
 - a second grid of every charge PennyWise blocked, by dark pattern ("Pre-ticked add-on", "Added without your choice", "Unexplained amount").

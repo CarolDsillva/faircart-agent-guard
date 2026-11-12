@@ -145,7 +145,7 @@ describe('runs API', () => {
 
   it('serves a health check', async () => {
     const { call } = setup([]);
-    expect((await call('GET', '/healthz')).json).toEqual({ ok: true });
+    expect((await call('GET', '/healthz')).json).toEqual({ ok: true, ledger: null });
   });
 });
 

@@ -58,6 +58,8 @@ export interface Run {
   error?: string;
   audit: AuditEntry[];
   touchedAt: number;
+  /** Started by the product demo: its payment step is simulated, and the ledger says so. */
+  demo?: boolean;
 }
 
 export class BadState extends Error {
@@ -76,6 +78,8 @@ export class RunStore {
   private runs = new Map<string, Run>();
   /** Finished runs for the payments ledger: kept after the live run expires (latest 500). */
   private finished = new Map<string, Run>();
+  /** Told about every finished run, so the ledger can be kept on disk. */
+  onFinish?: (run: Run) => void;
   constructor(
     private readonly ttlMs = 30 * 60_000,
     private readonly clock: () => number = () => Date.now(),
@@ -117,7 +121,16 @@ export class RunStore {
       this.finished.delete(run.id);
       this.finished.set(run.id, run);
       while (this.finished.size > 500) this.finished.delete(this.finished.keys().next().value!);
+      this.onFinish?.(run);
     }
+  }
+
+  /** The product demo reached a signed cart: record it (as a demo, payment simulated). */
+  finishDemo(run: Run) {
+    this.audit(run, 'human', 'demo_finished');
+    this.finished.delete(run.id);
+    this.finished.set(run.id, run);
+    this.onFinish?.(run);
   }
 
   fail(run: Run, actor: Actor, error: string) {

@@ -1,7 +1,7 @@
 import type { Approval, Reason } from '@faircart/guard';
 import { formatMoney } from '@faircart/money';
 import type { Finding } from '@faircart/schemas';
-import { productBySku, searchProducts } from '@faircart/shop';
+import { productBySku, PRODUCTS, searchProducts } from '@faircart/shop';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, type Config, type RunView } from './api';
 import { Home } from './Home';
@@ -498,13 +498,13 @@ function DemoControls({
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          aria-label="What should your agent buy? Search 180 products"
+          aria-label={`What should your agent buy? Search ${PRODUCTS.length} products`}
           disabled={locked}
         />
         <b>{money(Math.round(item.price * 100))}</b>
         {open && (
           <ul className="want__list" role="listbox">
-            {!query.trim() && <li className="want__hint">Popular picks · or type to search 180 products</li>}
+            {!query.trim() && <li className="want__hint">Popular picks · or type to search {PRODUCTS.length} products</li>}
             {matches.map((m) => (
               <li key={m.sku}>
                 <button

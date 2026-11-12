@@ -12,3 +12,7 @@ apps/android/local.properties
 .superpowers/
 test-results/
 playwright-report/
+
+# PennyWise ledger (local runs; on Render it lives on a persistent disk)
+/data/
+/apps/server/data/

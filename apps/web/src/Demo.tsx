@@ -160,7 +160,7 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
 
       // 1. Your rules.
       say({ chapter: 0, title: 'You give your AI agent one job.', sub: `“Buy ${item.title}. Max $25. Delivery fees OK, nothing else.”` });
-      const { runId } = await api.createRun({ want: { sku: item.sku, title: item.title, maxQuantity: 1 }, maxTotalPaise: 2500, allowedFees: ['delivery'], autopay: false, currency: 'USD' } as never);
+      const { runId } = await api.createRun({ want: { sku: item.sku, title: item.title, maxQuantity: 1 }, maxTotalPaise: 2500, allowedFees: ['delivery'], autopay: false, currency: 'USD' } as never, true);
       await load(productUrl('demomart', SKU));
       setPath('/p/demo-coffee-12oz');
       await wait(2200);
@@ -244,6 +244,8 @@ export function ProductDemo({ onExplore }: { onExplore: () => void }) {
         setCards((c) => ({ ...c, pay: i }));
         await wait(700);
       }
+      // Recorded in Merchant fairness as a demo run (payment simulated).
+      await api.demoDone(runId).catch(() => undefined);
       const view = await api.run(runId).catch(() => null);
       const tried = view?.receipt.triedPaise ?? 2195;
       check();

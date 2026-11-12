@@ -31,7 +31,7 @@ const Bill = z.object({
   unreadable: z.array(z.string()),
 });
 
-const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true, autopay: true, currency: true }) });
+const CreateRun = z.object({ mandate: Mandate.pick({ want: true, maxTotalPaise: true, allowedFees: true, feeCapsPaise: true, autopay: true, currency: true }), demo: z.boolean().optional() });
 const Observe = z.object({
   seq: z.number().int(),
   pageId: z.string().min(1).max(200),
@@ -104,7 +104,9 @@ export function ledgerRow(run: Run) {
     runId: run.id,
     at: run.audit.at(-1)?.at ?? null,
     store: run.store ?? null,
-    state: run.state,
+    // A demo run's payment is simulated: never shown as paid by PayPal.
+    state: run.demo ? ('demo' as const) : run.state,
+    demo: !!run.demo,
     planner: run.planner,
     triedPaise: r.triedPaise,
     paidPaise: r.paidPaise,
@@ -144,7 +146,18 @@ export function runRoutes(deps: RunDeps) {
     const body = CreateRun.parse(await c.req.json());
     const mandate = Mandate.parse({ ...body.mandate, version: 1, signedAt: deps.now().toISOString(), amendments: [] });
     const run = store.create(mandate);
+    if (body.demo) run.demo = true;
     return c.json({ runId: run.id, state: run.state });
+  });
+
+  /** The product demo's last step: its PayPal payment is simulated, so it is recorded as a demo. */
+  app.post('/:id/demo-done', (c) => {
+    const run = store.get(c.req.param('id'));
+    if (!run) return c.json({ error: 'run_expired' }, 404);
+    if (!run.demo) return c.json({ error: 'not_a_demo' }, 403);
+    store.require(run, 'authorized');
+    store.finishDemo(run);
+    return c.json({ ok: true });
   });
 
   app.get('/:id', (c) => {

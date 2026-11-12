@@ -4,6 +4,8 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import type { LLMProvider } from '@faircart/agent-core';
 import { createApp } from './app';
+import { LedgerBook } from './ledger';
+import { ledgerRow } from './routes/runs';
 import { loadDotEnv, readConfig } from './env';
 import { RunStore } from './runs';
 
@@ -16,8 +18,14 @@ const noPlanner: LLMProvider = {
   },
 };
 
+// The ledger lives on disk (a Render persistent disk at DATA_DIR in production), so restarts keep it.
+const book = new LedgerBook(process.env.DATA_DIR ?? './data');
+const store = new RunStore();
+store.onFinish = (run) => book.upsert(ledgerRow(run));
+
 const app = createApp({
-  store: new RunStore(),
+  store,
+  book,
   provider: cfg.provider ?? noPlanner,
   secret: cfg.secret,
   now: () => new Date(),

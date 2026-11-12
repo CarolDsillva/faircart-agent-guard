@@ -63,7 +63,9 @@ export interface LedgerRow {
   runId: string;
   at: string | null;
   store: string | null;
-  state: RunState;
+  state: RunState | 'demo';
+  /** Started by the product demo: payment simulated. */
+  demo?: boolean;
   planner: 'ai' | 'backup';
   triedPaise: number;
   paidPaise: number | null;
@@ -86,7 +88,8 @@ export interface Config {
 
 export const api = {
   config: () => call<Config>('GET', '/api/config'),
-  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees' | 'autopay' | 'currency'>) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate }),
+  createRun: (mandate: Pick<Mandate, 'want' | 'maxTotalPaise' | 'allowedFees' | 'autopay' | 'currency'>, demo = false) => call<{ runId: string; state: RunState }>('POST', '/api/runs', { mandate, ...(demo ? { demo: true } : {}) }),
+  demoDone: (runId: string) => call<{ ok: true }>('POST', `/api/runs/${runId}/demo-done`),
   observe: (runId: string, o: Observation, taps: TapEvent[], plan = true) =>
     call<ObserveResult>('POST', `/api/runs/${runId}/observe`, { seq: o.seq, pageId: o.pageId, url: o.url, snapshot: o.snapshot, bill: o.bill, taps, plan }),
   checkout: (runId: string) => call<GuardResult>('POST', `/api/runs/${runId}/checkout`),

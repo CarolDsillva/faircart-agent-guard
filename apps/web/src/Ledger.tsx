@@ -31,6 +31,8 @@ const STATE: Record<string, { label: string; tone: string }> = {
   settled: { label: 'Paid · settled', tone: 'pass' },
   stopped: { label: 'Stopped', tone: 'muted' },
   failed: { label: 'Failed', tone: 'block' },
+  // The product demo: real store pages and checks, PayPal step simulated.
+  demo: { label: 'Demo · payment simulated', tone: 'muted' },
 };
 
 function StateCell(p: ICellRendererParams<LedgerRow>) {
@@ -132,7 +134,8 @@ export function Ledger() {
   );
 
   const totals = useMemo(() => {
-    const paid = (rows ?? []).filter((r) => r.paidPaise !== null);
+    // Demo runs show what the store tried, but their payment is simulated: not counted as paid.
+    const paid = (rows ?? []).filter((r) => r.paidPaise !== null && !r.demo);
     return {
       runs: rows?.length ?? 0,
       paidRuns: paid.length,
